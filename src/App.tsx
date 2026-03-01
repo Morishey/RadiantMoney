@@ -17,12 +17,13 @@ import Footer from './components/Footer';
 import BankingDashboard from './components/BankingDashboard';
 import DesktopBankingDashboard from './components/DesktopBankingDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import SendMoney from './components/SendMoney'; // <-- IMPORT SENDMONEY
 
 // Import pages
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 
-// Home Page Component (combines all your existing sections)
+// Home Page Component
 const HomePage: React.FC = () => {
   return (
     <>
@@ -47,7 +48,6 @@ function App() {
     setIsMounted(true);
   }, []);
 
-  // Prevent rendering until after mount to avoid hydration mismatch
   if (!isMounted) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
   }
@@ -62,12 +62,22 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
-            {/* Protected Dashboard Route – serves mobile or desktop version based on screen size */}
+            {/* Protected Dashboard Route */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
                   {isMobile ? <BankingDashboard /> : <DesktopBankingDashboard />}
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Send Money Route – also protected */}
+            <Route
+              path="/send-money"
+              element={
+                <ProtectedRoute>
+                  <SendMoney />
                 </ProtectedRoute>
               }
             />

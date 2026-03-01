@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import './DesktopBankingDashboard.css';
 
+// Define interfaces
 interface Transaction {
     id: string;
     name: string;
@@ -76,6 +77,13 @@ interface Investment {
     returnPercentage: number;
 }
 
+interface SpendingCategory {
+    category: string;
+    amount: number;
+    color: string;
+    percentage: number;
+}
+
 const DesktopBankingDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -83,10 +91,10 @@ const DesktopBankingDashboard: React.FC = () => {
     const [showBalance, setShowBalance] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState('all');
     const [timeRange, setTimeRange] = useState('1M');
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // changed from collapsed
-    const [activeMenuItem, setActiveMenuItem] = useState('home'); // default changed
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [activeMenuItem, setActiveMenuItem] = useState('home');
 
-    // Mock data (same as mobile)
+    // Mock data
     const accounts: Account[] = [
         {
             id: '1',
@@ -207,7 +215,7 @@ const DesktopBankingDashboard: React.FC = () => {
         }
     ];
 
-    const spendingCategories = [
+    const spendingCategories: SpendingCategory[] = [
         { category: 'Shopping', amount: 2340, color: '#8b5cf6', percentage: 35 },
         { category: 'Dining', amount: 890, color: '#a78bfa', percentage: 15 },
         { category: 'Transport', amount: 450, color: '#c4b5fd', percentage: 8 },
@@ -220,7 +228,6 @@ const DesktopBankingDashboard: React.FC = () => {
     const monthlyExpenses = 8760.00;
     const savingsRate = ((monthlyIncome - monthlyExpenses) / monthlyIncome * 100).toFixed(1);
 
-    // Menu items – changed first label from 'Dashboard' to 'Home'
     const menuItems = [
         { id: 'home', icon: <Home size={20} />, label: 'Home' },
         { id: 'accounts', icon: <Wallet size={20} />, label: 'Accounts' },
@@ -283,7 +290,7 @@ const DesktopBankingDashboard: React.FC = () => {
                             className={`nav-item ${activeMenuItem === item.id ? 'active' : ''}`}
                             onClick={() => {
                                 setActiveMenuItem(item.id);
-                                setIsSidebarOpen(false); // close after selection
+                                setIsSidebarOpen(false);
                             }}
                         >
                             <span className="nav-icon">{item.icon}</span>
@@ -439,7 +446,16 @@ const DesktopBankingDashboard: React.FC = () => {
                     <h3>Quick Actions</h3>
                     <div className="quick-actions-grid">
                         {quickActions.map((action, index) => (
-                            <button key={index} className={`quick-action-card ${action.color}`}>
+                            <button
+                                key={index}
+                                className={`quick-action-card ${action.color}`}
+                                onClick={() => {
+                                    if (action.label === 'Send Money' || action.label === 'Transfer') {
+                                        navigate('/send-money'); // <-- lowercase, matches route
+                                    }
+                                    // Add other action handlers as needed
+                                }}
+                            >
                                 <div className="action-icon">{action.icon}</div>
                                 <span className="action-label">{action.label}</span>
                             </button>

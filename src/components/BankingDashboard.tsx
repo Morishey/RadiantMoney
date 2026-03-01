@@ -409,10 +409,9 @@ const BankingDashboard: React.FC = () => {
                             key={index}
                             className="quick-action-btn"
                             onClick={() => {
-                                if (action.label === 'Send') {
-                                    navigate('/SendMoney');
+                                if (action.label === 'Send' || action.label === 'Transfer') {
+                                    navigate('/send-money'); // <-- lowercase
                                 }
-                                // Add handlers for other actions as needed
                             }}
                         >
                             <div className={`quick-action-icon bg-gradient-to-r ${action.color}`}>
