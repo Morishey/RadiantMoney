@@ -1,9 +1,11 @@
-/* SendMoney.css */
+/* SendMoney.css - Modern iOS Style */
 
 .send-money-page {
   min-height: 100vh;
   background: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .send-money-header {
@@ -16,6 +18,9 @@
   top: 0;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .back-button {
@@ -79,6 +84,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   font-size: 14px;
+  font-family: inherit;
   transition: all 0.2s;
   background: #f8fafc;
 }
@@ -121,6 +127,57 @@
   margin-top: 6px;
   font-size: 12px;
   color: #ef4444;
+}
+
+/* Bank name hint */
+.bank-name-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8b5cf6;
+}
+
+/* Schedule checkbox */
+.schedule-group {
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Date input */
+input[type="date"] {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #f8fafc;
+  transition: all 0.2s;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+input[type="date"].error {
+  border-color: #ef4444;
 }
 
 .security-note {

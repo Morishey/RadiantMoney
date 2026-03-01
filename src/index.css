@@ -13,10 +13,16 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   line-height: 1.6;
   overflow-x: hidden;
   background: #f8fafc;
+  touch-action: pan-x pan-y;
 }
 
 /* Login Modal Styles */
@@ -96,13 +102,17 @@ body {
 }
 
 .login-brand-panel::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
   animation: rotate 20s linear infinite;
 }
 
@@ -404,7 +414,7 @@ body {
 
 .login-divider::before,
 .login-divider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   width: calc(50% - 70px);
@@ -488,8 +498,12 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -504,31 +518,37 @@ body {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
- .login-modal-grid {
+  .login-modal-grid {
     grid-template-columns: 1fr;
     overflow-y: auto; /* Allow grid to scroll on mobile */
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  
+
   .login-modal-grid::-webkit-scrollbar {
     display: none;
   }
-  
+
   .login-brand-panel {
     display: none; /* Hide brand panel on mobile */
   }
-  
+
   .login-form-panel {
     max-height: none; /* Remove max-height on mobile */
     overflow-y: visible; /* Allow natural flow */
@@ -563,7 +583,6 @@ body.modal-open {
   position: fixed;
   width: 100%;
 }
-
 
 /* Login logo styles matching Header */
 .login-logo-wrapper {
@@ -612,7 +631,9 @@ body.modal-open {
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    sans-serif;
 }
 
 /* Sidebar */
@@ -886,13 +907,15 @@ body.modal-open {
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
@@ -992,13 +1015,13 @@ body.modal-open {
   background: white;
   padding: 20px;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
 }
 
 .account-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .account-header {
@@ -1114,7 +1137,7 @@ body.modal-open {
 
 .action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .action-btn.primary:hover {
@@ -1134,7 +1157,7 @@ body.modal-open {
   background: white;
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .card-header {
@@ -1369,11 +1392,11 @@ body.modal-open {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .accounts-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -1383,32 +1406,32 @@ body.modal-open {
   .dashboard-sidebar {
     transform: translateX(-100%);
   }
-  
+
   .dashboard-sidebar.open {
     transform: translateX(0);
   }
-  
+
   .dashboard-main {
     margin-left: 0 !important;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .accounts-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .quick-actions {
     flex-wrap: wrap;
   }
-  
+
   .action-btn {
     flex: auto;
     min-width: 150px;
   }
-  
+
   .welcome-section {
     flex-direction: column;
     align-items: flex-start;
@@ -1467,13 +1490,17 @@ body.modal-open {
 }
 
 .auth-brand-panel::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
   animation: rotate 20s linear infinite;
 }
 
@@ -1862,7 +1889,7 @@ body.modal-open {
 
 .auth-divider::before,
 .auth-divider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   width: calc(50% - 70px);
@@ -1972,11 +1999,11 @@ body.modal-open {
     grid-template-columns: 1fr;
     max-width: 500px;
   }
-  
+
   .auth-brand-panel {
     display: none;
   }
-  
+
   .auth-form-panel {
     padding: 32px 24px;
   }
@@ -1986,11 +2013,11 @@ body.modal-open {
   .auth-form-panel {
     padding: 24px 16px;
   }
-  
+
   .social-auth {
     grid-template-columns: 1fr;
   }
-  
+
   .form-options {
     flex-direction: column;
     gap: 12px;

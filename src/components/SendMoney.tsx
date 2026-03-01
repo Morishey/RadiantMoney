@@ -1,23 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Send, Shield, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Send, Shield, Mail, Lock, AlertCircle, CheckCircle, Calendar } from 'lucide-react';
 import './SendMoney.css';
+
+// Helper to add working days (Mon-Fri) to a date
+function addWorkingDays(startDate: Date, days: number): Date {
+  let result = new Date(startDate);
+  let addedDays = 0;
+  while (addedDays < days) {
+    result.setDate(result.getDate() + 1);
+    // Skip Saturday (6) and Sunday (0)
+    if (result.getDay() !== 0 && result.getDay() !== 6) {
+      addedDays++;
+    }
+  }
+  return result;
+}
+
+// Format date as "Month Day, Year" (e.g., "March 15, 2026")
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 interface FormData {
   recipientAccount: string;
+  routingNumber: string;
+  bankName: string;
   recipientName: string;
   amount: string;
   description: string;
+  schedulePayment: boolean;
+  scheduleDate: string;
 }
 
 interface FormErrors {
   recipientAccount?: string;
+  routingNumber?: string;
   recipientName?: string;
   amount?: string;
   description?: string;
   otp?: string;
+  scheduleDate?: string;
 }
+
+// Mock database of routing numbers (9-digit keys) to bank names
+const routingNumberDB: Record<string, string> = {
+  '021000021': 'JPMorgan Chase',
+  '026009593': 'Bank of America',
+  '121000358': 'Wells Fargo',
+  '031100209': 'Citibank',
+  '011000138': 'TD Bank',
+  '031101169': 'PNC Bank',
+  '021200025': 'US Bank',
+  '051000017': 'Truist',
+  '056007736': 'Capital One',
+  '021000322': 'HSBC',
+};
 
 const SendMoney: React.FC = () => {
   const navigate = useNavigate();
@@ -25,51 +68,119 @@ const SendMoney: React.FC = () => {
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [formData, setFormData] = useState<FormData>({
     recipientAccount: '',
+    routingNumber: '',
+    bankName: '',
     recipientName: '',
     amount: '',
     description: '',
+    schedulePayment: false,
+    scheduleDate: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedOtp] = useState('123456'); // In real app, this would be sent via email
+  const [bankLookupTimeout, setBankLookupTimeout] = useState<number | null>(null);
+  
+  // For success page timestamps
+  const [transferTimestamp] = useState(new Date()); // capture time of transfer
+  const [minDeliveryDate] = useState(() => addWorkingDays(new Date(), 7));
+  const [maxDeliveryDate] = useState(() => addWorkingDays(new Date(), 14));
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
+    
     // Clear error for this field when user types
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+
+    // Special handling for routing number: look up bank name
+    if (name === 'routingNumber') {
+      // Clear previous timeout
+      if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
+      
+      // Set timeout to look up bank name after user stops typing
+      const timeout = window.setTimeout(() => {
+        const cleanedRouting = value.replace(/\D/g, '');
+        // Only lookup when we have exactly 9 digits
+        if (cleanedRouting.length === 9) {
+          const bankName = routingNumberDB[cleanedRouting] || 'Unknown Bank';
+          setFormData(prev => ({ ...prev, bankName }));
+        } else {
+          setFormData(prev => ({ ...prev, bankName: '' }));
+        }
+      }, 500);
+      setBankLookupTimeout(timeout);
+    }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
+    };
+  }, [bankLookupTimeout]);
 
   // Validate form
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     
+    // Account number: 10-16 digits
     if (!formData.recipientAccount.trim()) {
       newErrors.recipientAccount = 'Recipient account number is required';
-    } else if (!/^\d{10,16}$/.test(formData.recipientAccount.replace(/\s/g, ''))) {
-      newErrors.recipientAccount = 'Account number should be 10-16 digits';
+    } else {
+      const cleanedAccount = formData.recipientAccount.replace(/\s/g, '');
+      if (!/^\d{10,16}$/.test(cleanedAccount)) {
+        newErrors.recipientAccount = 'Account number must be 10 to 16 digits';
+      }
+    }
+    
+    // Routing number: exactly 9 digits
+    if (!formData.routingNumber.trim()) {
+      newErrors.routingNumber = 'Routing number is required';
+    } else {
+      const cleanedRouting = formData.routingNumber.replace(/\s/g, '');
+      if (!/^\d{9}$/.test(cleanedRouting)) {
+        newErrors.routingNumber = 'Routing number must be exactly 9 digits';
+      }
     }
     
     if (!formData.recipientName.trim()) {
       newErrors.recipientName = 'Recipient name is required';
     }
     
+    // Amount: any positive number (no upper limit)
     if (!formData.amount) {
       newErrors.amount = 'Amount is required';
     } else if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
       newErrors.amount = 'Please enter a valid amount greater than 0';
-    } else if (Number(formData.amount) > 10000) {
-      newErrors.amount = 'Maximum transfer amount is $10,000';
     }
     
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     } else if (formData.description.length < 3) {
       newErrors.description = 'Description must be at least 3 characters';
+    }
+
+    if (formData.schedulePayment) {
+      if (!formData.scheduleDate) {
+        newErrors.scheduleDate = 'Please select a date for scheduled payment';
+      } else {
+        const selectedDate = new Date(formData.scheduleDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          newErrors.scheduleDate = 'Scheduled date cannot be in the past';
+        }
+      }
     }
     
     setErrors(newErrors);
@@ -122,7 +233,6 @@ const SendMoney: React.FC = () => {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Show toast or alert (in real app, resend email)
       alert('OTP resent to your email');
     } finally {
       setIsLoading(false);
@@ -169,7 +279,8 @@ const SendMoney: React.FC = () => {
                 name="recipientAccount"
                 value={formData.recipientAccount}
                 onChange={handleChange}
-                placeholder="Enter account number"
+                placeholder="10 to 16 digits"
+                maxLength={16}
                 className={errors.recipientAccount ? 'error' : ''}
                 disabled={isLoading}
               />
@@ -177,6 +288,29 @@ const SendMoney: React.FC = () => {
                 <span className="error-message">
                   <AlertCircle size={14} /> {errors.recipientAccount}
                 </span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="routingNumber">Routing Number</label>
+              <input
+                type="text"
+                id="routingNumber"
+                name="routingNumber"
+                value={formData.routingNumber}
+                onChange={handleChange}
+                placeholder="9-digit routing number"
+                maxLength={9}
+                className={errors.routingNumber ? 'error' : ''}
+                disabled={isLoading}
+              />
+              {errors.routingNumber && (
+                <span className="error-message">
+                  <AlertCircle size={14} /> {errors.routingNumber}
+                </span>
+              )}
+              {formData.bankName && (
+                <span className="bank-name-hint">Bank: {formData.bankName}</span>
               )}
             </div>
 
@@ -242,6 +376,40 @@ const SendMoney: React.FC = () => {
               )}
             </div>
 
+            <div className="form-group schedule-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="schedulePayment"
+                  checked={formData.schedulePayment}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+                <span>Schedule this payment</span>
+              </label>
+            </div>
+
+            {formData.schedulePayment && (
+              <div className="form-group">
+                <label htmlFor="scheduleDate">Select Date</label>
+                <input
+                  type="date"
+                  id="scheduleDate"
+                  name="scheduleDate"
+                  value={formData.scheduleDate}
+                  onChange={handleChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className={errors.scheduleDate ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.scheduleDate && (
+                  <span className="error-message">
+                    <AlertCircle size={14} /> {errors.scheduleDate}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="security-note">
               <Shield size={16} />
               <span>Secure transaction protected by 256-bit encryption</span>
@@ -302,6 +470,10 @@ const SendMoney: React.FC = () => {
                   <span>{formData.recipientAccount}</span>
                 </div>
                 <div className="summary-item">
+                  <span>Routing:</span>
+                  <span>{formData.routingNumber} ({formData.bankName || 'Unknown'})</span>
+                </div>
+                <div className="summary-item">
                   <span>Amount:</span>
                   <span className="amount">{formatCurrency(formData.amount)}</span>
                 </div>
@@ -309,6 +481,12 @@ const SendMoney: React.FC = () => {
                   <span>Description:</span>
                   <span>{formData.description}</span>
                 </div>
+                {formData.schedulePayment && (
+                  <div className="summary-item">
+                    <span>Scheduled:</span>
+                    <span>{new Date(formData.scheduleDate).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
 
               <button type="submit" className="submit-btn" disabled={isLoading}>
@@ -323,8 +501,9 @@ const SendMoney: React.FC = () => {
             <div className="success-icon">
               <CheckCircle size={64} />
             </div>
-            <h2>Transfer Successful!</h2>
-            <p>Your money has been sent successfully.</p>
+            <h2>{formData.schedulePayment ? 'Payment Scheduled!' : 'Transfer Successful!'}</h2>
+            <p>{formData.schedulePayment ? 'Your payment has been scheduled.' : 'Your money has been sent successfully.'}</p>
+            
             <div className="success-details">
               <div className="detail-item">
                 <span>Amount:</span>
@@ -338,11 +517,28 @@ const SendMoney: React.FC = () => {
                 <span>Account:</span>
                 <strong>{formData.recipientAccount}</strong>
               </div>
+              {formData.schedulePayment && (
+                <div className="detail-item">
+                  <span>Scheduled Date:</span>
+                  <strong>{new Date(formData.scheduleDate).toLocaleDateString()}</strong>
+                </div>
+              )}
+              {/* Transfer date/time */}
+              <div className="detail-item">
+                <span>Transfer Date:</span>
+                <strong>{transferTimestamp.toLocaleString()}</strong>
+              </div>
+              {/* Expected delivery range */}
+              <div className="detail-item">
+                <span>Est. Delivery:</span>
+                <strong>{formatDate(minDeliveryDate)} – {formatDate(maxDeliveryDate)}</strong>
+              </div>
               <div className="detail-item">
                 <span>Reference:</span>
                 <strong>TXN{Math.floor(Math.random() * 1000000)}</strong>
               </div>
             </div>
+
             <button className="done-btn" onClick={() => navigate('/dashboard')}>
               Done
             </button>
