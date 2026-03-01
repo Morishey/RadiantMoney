@@ -26,7 +26,7 @@ const initialAccounts: Account[] = [
     type: 'checking',
     name: 'Personal Checking',
     number: '•••• 4582',
-    balance: 158450.75,
+    balance: 15450.75,
     currency: 'USD',
     trend: 2.5
   },
