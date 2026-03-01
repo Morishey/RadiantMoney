@@ -7,5 +7,8 @@
   "github": {
     "enabled": true,
     "silent": true
-  }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
