@@ -1,0 +1,377 @@
+/* SendMoney.css */
+
+.send-money-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.send-money-header {
+  background: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #1e293b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.back-button:hover {
+  background: #f1f5f9;
+}
+
+.send-money-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.header-placeholder {
+  width: 40px;
+}
+
+.send-money-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* Form Styles */
+.send-money-form {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.form-group input.error,
+.form-group textarea.error {
+  border-color: #ef4444;
+}
+
+.amount-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 16px;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.amount-input-wrapper input {
+  padding-left: 32px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin: 20px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.security-note svg {
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(124, 58, 237, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* OTP Step */
+.otp-container {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.otp-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.otp-icon {
+  color: #8b5cf6;
+  margin-bottom: 16px;
+}
+
+.otp-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.otp-header p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.user-email {
+  font-weight: 600;
+  color: #8b5cf6 !important;
+  margin-top: 4px;
+}
+
+.otp-form {
+  margin-top: 24px;
+}
+
+.otp-actions {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 24px;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #8b5cf6;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.resend-btn:hover:not(:disabled) {
+  background: #ede9fe;
+}
+
+.resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transaction-summary {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 20px 0;
+}
+
+.transaction-summary h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item span:first-child {
+  color: #64748b;
+}
+
+.summary-item span:last-child {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.amount {
+  color: #8b5cf6 !important;
+  font-weight: 600;
+}
+
+/* Success Step */
+.success-container {
+  background: white;
+  border-radius: 24px;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.success-icon {
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.success-container h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.success-container > p {
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.success-details {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item span {
+  color: #64748b;
+}
+
+.detail-item strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.done-btn {
+  width: 100%;
+  padding: 14px;
+  background: #8b5cf6;
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.done-btn:hover {
+  background: #7c3aed;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .send-money-container {
+    max-width: 600px;
+    padding: 32px;
+  }
+  
+  .send-money-header h1 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .send-money-container {
+    padding: 16px 12px;
+  }
+  
+  .send-money-form,
+  .otp-container,
+  .success-container {
+    padding: 20px;
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    padding: 10px 14px;
+  }
+  
+  .submit-btn {
+    padding: 12px;
+  }
+}

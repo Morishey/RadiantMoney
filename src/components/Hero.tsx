@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Shield, Zap, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroFeature {
   icon: React.ReactNode;
@@ -7,11 +8,17 @@ interface HeroFeature {
 }
 
 const Hero: React.FC = () => {
+  const navigate = useNavigate();
+
   const heroFeatures: HeroFeature[] = [
     { icon: <Shield />, text: "Bank-Grade Security" },
     { icon: <Zap />, text: "Lightning Fast" },
     { icon: <Lock />, text: "FDIC Insured" }
   ];
+
+  const handleGetStarted = () => {
+    navigate('/login');
+  };
 
   return (
     <section className="hero">
@@ -26,6 +33,13 @@ const Hero: React.FC = () => {
             We transformed the digital banking industry using data and technology 
             more than 10 years ago. Experience banking reimagined for the modern world.
           </p>
+           <button 
+            className="btn btn-primary btn-large"
+            onClick={handleGetStarted}
+          >
+            GET STARTED
+            <ArrowRight className="btn-icon" />
+          </button> <br /> <br />
           <div className="hero-features">
             {heroFeatures.map((feature, index) => (
               <div key={index} className="hero-feature">
@@ -34,13 +48,7 @@ const Hero: React.FC = () => {
               </div>
             ))}
           </div>
-          <button 
-            className="btn btn-primary btn-large"
-            onClick={() => document.getElementById('personal')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            GET STARTED
-            <ArrowRight className="btn-icon" />
-          </button>
+         
         </div>
       </div>
       <div className="hero-wave">

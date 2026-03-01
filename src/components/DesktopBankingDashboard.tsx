@@ -1,0 +1,644 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import {
+    Home,
+    CreditCard,
+    Wallet,
+    TrendingUp,
+    PieChart,
+    Settings,
+    Bell,
+    User,
+    Search,
+    ArrowUpRight,
+    ArrowDownRight,
+    Plus,
+    Send,
+    Download,
+    MoreHorizontal,
+    DollarSign,
+    Shield,
+    Zap,
+    Globe,
+    Clock,
+    ChevronRight,
+    Users,
+    Building,
+    Briefcase,
+    BarChart3,
+    FileText,
+    LogOut,
+    HelpCircle,
+    Gift,
+    PiggyBank,
+    Repeat,
+    Menu,
+    X,
+    Mail,
+    Phone,
+    Calendar,
+    Filter,
+    Download as DownloadIcon,
+    Printer,
+    Eye,
+    EyeOff
+} from 'lucide-react';
+import './DesktopBankingDashboard.css';
+
+interface Transaction {
+    id: string;
+    name: string;
+    date: string;
+    amount: number;
+    type: 'credit' | 'debit';
+    status: 'completed' | 'pending' | 'failed';
+    category: string;
+    icon?: React.ReactNode;
+}
+
+interface Account {
+    id: string;
+    type: string;
+    name: string;
+    number: string;
+    balance: number;
+    currency: string;
+    trend: number;
+}
+
+interface Investment {
+    id: string;
+    name: string;
+    ticker: string;
+    value: number;
+    return: number;
+    returnPercentage: number;
+}
+
+const DesktopBankingDashboard: React.FC = () => {
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const [showBalance, setShowBalance] = useState(true);
+    const [selectedAccount, setSelectedAccount] = useState('all');
+    const [timeRange, setTimeRange] = useState('1M');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // changed from collapsed
+    const [activeMenuItem, setActiveMenuItem] = useState('home'); // default changed
+
+    // Mock data (same as mobile)
+    const accounts: Account[] = [
+        {
+            id: '1',
+            type: 'checking',
+            name: 'Personal Checking',
+            number: '•••• 4582',
+            balance: 28450.75,
+            currency: 'USD',
+            trend: 2.5
+        },
+        {
+            id: '2',
+            type: 'savings',
+            name: 'High-Yield Savings',
+            number: '•••• 9123',
+            balance: 127890.50,
+            currency: 'USD',
+            trend: 4.2
+        },
+        {
+            id: '3',
+            type: 'investment',
+            name: 'Investment Portfolio',
+            number: '•••• 3305',
+            balance: 234567.89,
+            currency: 'USD',
+            trend: 8.3
+        }
+    ];
+
+    const recentTransactions: Transaction[] = [
+        {
+            id: '1',
+            name: 'Apple Store',
+            date: 'Today, 2:30 PM',
+            amount: 1299.99,
+            type: 'debit',
+            status: 'completed',
+            category: 'Shopping',
+            icon: <CreditCard size={18} />
+        },
+        {
+            id: '2',
+            name: 'Salary Deposit',
+            date: 'Yesterday',
+            amount: 5500.00,
+            type: 'credit',
+            status: 'completed',
+            category: 'Income',
+            icon: <DollarSign size={18} />
+        },
+        {
+            id: '3',
+            name: 'Netflix Subscription',
+            date: 'Dec 12, 2025',
+            amount: 15.99,
+            type: 'debit',
+            status: 'completed',
+            category: 'Entertainment',
+            icon: <Zap size={18} />
+        },
+        {
+            id: '4',
+            name: 'Wire Transfer to Savings',
+            date: 'Dec 10, 2025',
+            amount: 2000.00,
+            type: 'debit',
+            status: 'completed',
+            category: 'Transfer',
+            icon: <Send size={18} />
+        },
+        {
+            id: '5',
+            name: 'Amazon Web Services',
+            date: 'Dec 8, 2025',
+            amount: 47.50,
+            type: 'debit',
+            status: 'pending',
+            category: 'Business',
+            icon: <Briefcase size={18} />
+        },
+        {
+            id: '6',
+            name: 'Dividend Payment',
+            date: 'Dec 5, 2025',
+            amount: 125.75,
+            type: 'credit',
+            status: 'completed',
+            category: 'Investment',
+            icon: <TrendingUp size={18} />
+        }
+    ];
+
+    const investments: Investment[] = [
+        {
+            id: '1',
+            name: 'S&P 500 ETF',
+            ticker: 'VOO',
+            value: 45678.90,
+            return: 2345.67,
+            returnPercentage: 5.4
+        },
+        {
+            id: '2',
+            name: 'Tech Growth Fund',
+            ticker: 'TECH',
+            value: 23456.78,
+            return: 3456.78,
+            returnPercentage: 17.3
+        },
+        {
+            id: '3',
+            name: 'Government Bonds',
+            ticker: 'GOVT',
+            value: 15000.00,
+            return: 450.00,
+            returnPercentage: 3.1
+        }
+    ];
+
+    const spendingCategories = [
+        { category: 'Shopping', amount: 2340, color: '#8b5cf6', percentage: 35 },
+        { category: 'Dining', amount: 890, color: '#a78bfa', percentage: 15 },
+        { category: 'Transport', amount: 450, color: '#c4b5fd', percentage: 8 },
+        { category: 'Entertainment', amount: 320, color: '#ddd6fe', percentage: 5 },
+        { category: 'Bills', amount: 1850, color: '#ede9fe', percentage: 27 }
+    ];
+
+    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const monthlyIncome = 12450.00;
+    const monthlyExpenses = 8760.00;
+    const savingsRate = ((monthlyIncome - monthlyExpenses) / monthlyIncome * 100).toFixed(1);
+
+    // Menu items – changed first label from 'Dashboard' to 'Home'
+    const menuItems = [
+        { id: 'home', icon: <Home size={20} />, label: 'Home' },
+        { id: 'accounts', icon: <Wallet size={20} />, label: 'Accounts' },
+        { id: 'transactions', icon: <CreditCard size={20} />, label: 'Transactions' },
+        { id: 'investments', icon: <TrendingUp size={20} />, label: 'Investments' },
+        { id: 'analytics', icon: <PieChart size={20} />, label: 'Analytics' },
+        { id: 'beneficiaries', icon: <Users size={20} />, label: 'Beneficiaries' },
+        { id: 'statements', icon: <FileText size={20} />, label: 'Statements' },
+        { id: 'settings', icon: <Settings size={20} />, label: 'Settings' }
+    ];
+
+    const quickActions = [
+        { icon: <Send size={18} />, label: 'Send Money', color: 'primary' },
+        { icon: <Download size={18} />, label: 'Request', color: 'success' },
+        { icon: <Plus size={18} />, label: 'Add Money', color: 'warning' },
+        { icon: <Repeat size={18} />, label: 'Transfer', color: 'info' }
+    ];
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    return (
+        <div className="desktop-dashboard">
+            {/* Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+            )}
+
+            {/* Sidebar */}
+            <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <div className="sidebar-header">
+                    <div className="logo">
+                        <Building size={28} className="logo-icon" />
+                        <span className="logo-text">CrestcoastHub</span>
+                    </div>
+                    <button
+                        className="close-sidebar-btn"
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="user-info">
+                    <div className="user-avatar">
+                        <User size={24} />
+                    </div>
+                    <div className="user-details">
+                        <span className="user-name">John Anderson</span>
+                        <span className="user-email">john@crestbank.com</span>
+                    </div>
+                </div>
+
+                <nav className="sidebar-nav">
+                    {menuItems.map((item) => (
+                        <button
+                            key={item.id}
+                            className={`nav-item ${activeMenuItem === item.id ? 'active' : ''}`}
+                            onClick={() => {
+                                setActiveMenuItem(item.id);
+                                setIsSidebarOpen(false); // close after selection
+                            }}
+                        >
+                            <span className="nav-icon">{item.icon}</span>
+                            <span className="nav-label">{item.label}</span>
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="sidebar-footer">
+                    <button className="footer-item">
+                        <HelpCircle size={20} />
+                        <span>Help</span>
+                    </button>
+                    <button className="footer-item" onClick={handleLogout}>
+                        <LogOut size={20} />
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="main-content">
+                {/* Header */}
+                <header className="desktop-header">
+                    <div className="header-left">
+                        <button
+                            className="menu-toggle"
+                            onClick={() => setIsSidebarOpen(true)}
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <div className="date-display">
+                            <Calendar size={16} />
+                            <span>{new Date().toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}</span>
+                        </div>
+                    </div>
+
+                    <div className="header-right">
+                        <div className="search-wrapper">
+                            <Search size={18} className="search-icon" />
+                            <input type="text" placeholder="Search..." className="search-input" />
+                        </div>
+
+                        <button className="notification-btn">
+                            <Bell size={20} />
+                            <span className="notification-badge">3</span>
+                        </button>
+
+                        <button className="profile-btn">
+                            <User size={20} />
+                        </button>
+                    </div>
+                </header>
+
+                {/* Welcome Banner */}
+                <div className="welcome-banner">
+                    <div className="welcome-text">
+                        <h2>Welcome back, John! 👋</h2>
+                        <p>Here's what's happening with your finances today.</p>
+                    </div>
+                    <div className="banner-actions">
+                        <button className="action-btn primary">
+                            <Download size={16} />
+                            Download Statement
+                        </button>
+                        <button className="action-btn">
+                            <Printer size={16} />
+                            Print
+                        </button>
+                    </div>
+                </div>
+
+                {/* Balance Overview Cards */}
+                <div className="balance-overview">
+                    <div className="balance-card main">
+                        <div className="card-header">
+                            <span className="label">Total Balance</span>
+                            <button
+                                className="toggle-visibility"
+                                onClick={() => setShowBalance(!showBalance)}
+                            >
+                                {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
+                        <div className="balance-amount">
+                            {showBalance ? `$${totalBalance.toLocaleString()}` : '••••••'}
+                        </div>
+                        <div className="balance-trend">
+                            <span className="trend positive">
+                                <ArrowUpRight size={16} />
+                                +2.4%
+                            </span>
+                            <span className="trend-period">vs last month</span>
+                        </div>
+                    </div>
+
+                    <div className="balance-card">
+                        <div className="card-header">
+                            <span className="label">Monthly Income</span>
+                            <DollarSign size={18} className="card-icon income" />
+                        </div>
+                        <div className="balance-amount small">
+                            {showBalance ? `$${monthlyIncome.toLocaleString()}` : '••••••'}
+                        </div>
+                        <div className="balance-footer">
+                            <span className="trend positive">
+                                <ArrowUpRight size={14} />
+                                +8.2%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="balance-card">
+                        <div className="card-header">
+                            <span className="label">Monthly Expenses</span>
+                            <ArrowDownRight size={18} className="card-icon expense" />
+                        </div>
+                        <div className="balance-amount small">
+                            {showBalance ? `$${monthlyExpenses.toLocaleString()}` : '••••••'}
+                        </div>
+                        <div className="balance-footer">
+                            <span className="trend negative">
+                                <ArrowDownRight size={14} />
+                                +3.1%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="balance-card">
+                        <div className="card-header">
+                            <span className="label">Savings Rate</span>
+                            <PiggyBank size={18} className="card-icon savings" />
+                        </div>
+                        <div className="balance-amount small">
+                            {savingsRate}%
+                        </div>
+                        <div className="balance-footer">
+                            <span className="trend positive">
+                                <ArrowUpRight size={14} />
+                                +2.1%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="quick-actions-section">
+                    <h3>Quick Actions</h3>
+                    <div className="quick-actions-grid">
+                        {quickActions.map((action, index) => (
+                            <button key={index} className={`quick-action-card ${action.color}`}>
+                                <div className="action-icon">{action.icon}</div>
+                                <span className="action-label">{action.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Accounts and Charts Row */}
+                <div className="dashboard-row">
+                    {/* Accounts List */}
+                    <div className="accounts-section">
+                        <div className="section-header">
+                            <h3>Your Accounts</h3>
+                            <button className="view-all-btn">
+                                View All
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                        <div className="accounts-grid">
+                            {accounts.map((account) => (
+                                <div key={account.id} className="account-card">
+                                    <div className="account-card-header">
+                                        <div className="account-type">
+                                            {account.type === 'checking' && <Wallet size={20} />}
+                                            {account.type === 'savings' && <Shield size={20} />}
+                                            {account.type === 'investment' && <TrendingUp size={20} />}
+                                        </div>
+                                        <div className="account-info">
+                                            <span className="account-name">{account.name}</span>
+                                            <span className="account-number">{account.number}</span>
+                                        </div>
+                                        <button className="account-menu">
+                                            <MoreHorizontal size={18} />
+                                        </button>
+                                    </div>
+                                    <div className="account-card-footer">
+                                        <div>
+                                            <span className="balance-label">Balance</span>
+                                            <span className="balance-value">
+                                                {showBalance ? `$${account.balance.toLocaleString()}` : '••••••'}
+                                            </span>
+                                        </div>
+                                        <span className={`trend-badge ${account.trend >= 0 ? 'positive' : 'negative'}`}>
+                                            {account.trend >= 0 ? '+' : ''}{account.trend}%
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Spending Chart */}
+                    <div className="spending-section">
+                        <div className="section-header">
+                            <h3>Spending Overview</h3>
+                            <select className="time-range" value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+                                <option value="1W">Last Week</option>
+                                <option value="1M">Last Month</option>
+                                <option value="3M">Last 3 Months</option>
+                                <option value="1Y">Last Year</option>
+                            </select>
+                        </div>
+                        <div className="chart-container">
+                            <div className="bar-chart">
+                                {spendingCategories.map((category, index) => (
+                                    <div key={index} className="chart-bar-item">
+                                        <div className="bar-label">{category.category}</div>
+                                        <div className="bar-container">
+                                            <div
+                                                className="bar-fill"
+                                                style={{
+                                                    width: `${category.percentage}%`,
+                                                    backgroundColor: category.color
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <div className="bar-value">${category.amount}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Recent Transactions and Investments Row */}
+                <div className="dashboard-row">
+                    {/* Recent Transactions */}
+                    <div className="transactions-section">
+                        <div className="section-header">
+                            <h3>Recent Transactions</h3>
+                            <div className="header-actions">
+                                <button className="filter-btn">
+                                    <Filter size={16} />
+                                    Filter
+                                </button>
+                                <button className="view-all-btn">
+                                    View All
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="transactions-table">
+                            <div className="table-header">
+                                <span>Description</span>
+                                <span>Category</span>
+                                <span>Date</span>
+                                <span>Status</span>
+                                <span>Amount</span>
+                            </div>
+                            <div className="table-body">
+                                {recentTransactions.map((transaction) => (
+                                    <div key={transaction.id} className="table-row">
+                                        <div className="transaction-info">
+                                            <div className="transaction-icon">{transaction.icon}</div>
+                                            <span className="transaction-name">{transaction.name}</span>
+                                        </div>
+                                        <span className="transaction-category">{transaction.category}</span>
+                                        <span className="transaction-date">{transaction.date}</span>
+                                        <span className={`transaction-status ${transaction.status}`}>
+                                            {transaction.status}
+                                        </span>
+                                        <span className={`transaction-amount ${transaction.type}`}>
+                                            {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Investments */}
+                    <div className="investments-section">
+                        <div className="section-header">
+                            <h3>Investments</h3>
+                            <button className="view-all-btn">
+                                View Portfolio
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                        <div className="investments-list">
+                            {investments.map((investment) => (
+                                <div key={investment.id} className="investment-item">
+                                    <div className="investment-info">
+                                        <span className="investment-name">{investment.name}</span>
+                                        <span className="investment-ticker">{investment.ticker}</span>
+                                    </div>
+                                    <div className="investment-values">
+                                        <span className="investment-value">
+                                            ${investment.value.toLocaleString()}
+                                        </span>
+                                        <span className={`investment-return ${investment.return >= 0 ? 'positive' : 'negative'}`}>
+                                            {investment.return >= 0 ? '+' : ''}{investment.returnPercentage}%
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Offers Section */}
+                <div className="offers-section">
+                    <div className="section-header">
+                        <h3>Special Offers & Rewards</h3>
+                        <button className="view-all-btn">
+                            View All Offers
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                    <div className="offers-grid">
+                        <div className="offer-card">
+                            <Gift size={24} className="offer-icon" />
+                            <div className="offer-content">
+                                <h4>2% Cashback on Shopping</h4>
+                                <p>Use your debit card for online purchases and get 2% cashback</p>
+                                <button className="offer-cta">Learn More</button>
+                            </div>
+                        </div>
+                        <div className="offer-card">
+                            <Zap size={24} className="offer-icon" />
+                            <div className="offer-content">
+                                <h4>Zero Fee Transfers</h4>
+                                <p>Free international transfers for the next 3 months</p>
+                                <button className="offer-cta">Activate Now</button>
+                            </div>
+                        </div>
+                        <div className="offer-card">
+                            <TrendingUp size={24} className="offer-icon" />
+                            <div className="offer-content">
+                                <h4>Investment Bonus</h4>
+                                <p>Get $50 when you invest $1000 in any fund</p>
+                                <button className="offer-cta">Start Investing</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default DesktopBankingDashboard;
