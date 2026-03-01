@@ -78,7 +78,8 @@
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid #e2e8f0;
@@ -89,8 +90,18 @@
   background: #f8fafc;
 }
 
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: #8b5cf6;
   background: white;
@@ -98,7 +109,8 @@
 }
 
 .form-group input.error,
-.form-group textarea.error {
+.form-group textarea.error,
+.form-group select.error {
   border-color: #ef4444;
 }
 
@@ -219,6 +231,40 @@ input[type="date"].error {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Security Step */
+.security-container {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.security-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.security-icon {
+  color: #8b5cf6;
+  margin-bottom: 16px;
+}
+
+.security-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.security-header p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.security-form {
+  margin-top: 24px;
 }
 
 /* OTP Step */
@@ -400,6 +446,47 @@ input[type="date"].error {
   background: #7c3aed;
 }
 
+/* Global loader overlay */
+.global-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loader-content {
+  text-align: center;
+  background: white;
+  padding: 24px 32px;
+  border-radius: 24px;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: #8b5cf6;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loader-content p {
+  font-size: 16px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
 /* Responsive */
 @media (min-width: 768px) {
   .send-money-container {
@@ -424,7 +511,8 @@ input[type="date"].error {
   }
   
   .form-group input,
-  .form-group textarea {
+  .form-group textarea,
+  .form-group select {
     padding: 10px 14px;
   }
   

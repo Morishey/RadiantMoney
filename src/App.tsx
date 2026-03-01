@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import { AuthProvider } from './context/AuthContext';
+import { AccountProvider } from './context/AccountContext';
+import { TransactionProvider } from './context/TransactionContext'; // 👈 New import
 import './App.css';
 
 // Import components
@@ -17,7 +19,7 @@ import Footer from './components/Footer';
 import BankingDashboard from './components/BankingDashboard';
 import DesktopBankingDashboard from './components/DesktopBankingDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import SendMoney from './components/SendMoney'; // <-- IMPORT SENDMONEY
+import SendMoney from './components/SendMoney';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
@@ -55,34 +57,38 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="App">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+        <AccountProvider>
+          <TransactionProvider>  {/* 👈 Wrap with TransactionProvider */}
+            <div className="App">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
 
-            {/* Protected Dashboard Route */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  {isMobile ? <BankingDashboard /> : <DesktopBankingDashboard />}
-                </ProtectedRoute>
-              }
-            />
+                {/* Protected Dashboard Route */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      {isMobile ? <BankingDashboard /> : <DesktopBankingDashboard />}
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* Send Money Route – also protected */}
-            <Route
-              path="/send-money"
-              element={
-                <ProtectedRoute>
-                  <SendMoney />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
+                {/* Send Money Route */}
+                <Route
+                  path="/send-money"
+                  element={
+                    <ProtectedRoute>
+                      <SendMoney />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </TransactionProvider>
+        </AccountProvider>
       </AuthProvider>
     </Router>
   );

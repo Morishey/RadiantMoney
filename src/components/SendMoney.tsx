@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Send, Shield, Mail, Lock, AlertCircle, CheckCircle, Calendar } from 'lucide-react';
+import { useAccounts } from '../context/AccountContext';
+import { useTransactions } from '../context/TransactionContext';
+import { ArrowLeft, Shield, Mail, AlertCircle, CheckCircle, Loader, Send } from 'lucide-react';
 import './SendMoney.css';
 
 // Helper to add working days (Mon-Fri) to a date
@@ -18,7 +20,7 @@ function addWorkingDays(startDate: Date, days: number): Date {
   return result;
 }
 
-// Format date as "Month Day, Year" (e.g., "March 15, 2026")
+// Format date as "Month Day, Year"
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
     month: 'long',
@@ -28,6 +30,7 @@ function formatDate(date: Date): string {
 }
 
 interface FormData {
+  fromAccountId: string;
   recipientAccount: string;
   routingNumber: string;
   bankName: string;
@@ -38,14 +41,23 @@ interface FormData {
   scheduleDate: string;
 }
 
+interface SecurityData {
+  motherMaidenName: string;
+  birthYear: string;
+}
+
 interface FormErrors {
+  fromAccountId?: string;
   recipientAccount?: string;
   routingNumber?: string;
   recipientName?: string;
   amount?: string;
   description?: string;
-  otp?: string;
   scheduleDate?: string;
+  motherMaidenName?: string;
+  birthYear?: string;
+  otp?: string;
+  general?: string;
 }
 
 // Mock database of routing numbers (9-digit keys) to bank names
@@ -65,8 +77,12 @@ const routingNumberDB: Record<string, string> = {
 const SendMoney: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
+  const { accounts, deductFromAccount } = useAccounts();
+  const { addTransaction } = useTransactions();
+
+  const [step, setStep] = useState<'form' | 'security' | 'otp' | 'success'>('form');
   const [formData, setFormData] = useState<FormData>({
+    fromAccountId: accounts.length > 0 ? accounts[0].id : '',
     recipientAccount: '',
     routingNumber: '',
     bankName: '',
@@ -76,41 +92,39 @@ const SendMoney: React.FC = () => {
     schedulePayment: false,
     scheduleDate: '',
   });
+  const [securityData, setSecurityData] = useState<SecurityData>({
+    motherMaidenName: '',
+    birthYear: '',
+  });
   const [errors, setErrors] = useState<FormErrors>({});
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedOtp] = useState('123456'); // In real app, this would be sent via email
   const [bankLookupTimeout, setBankLookupTimeout] = useState<number | null>(null);
-  
+
   // For success page timestamps
-  const [transferTimestamp] = useState(new Date()); // capture time of transfer
+  const [transferTimestamp] = useState(new Date());
   const [minDeliveryDate] = useState(() => addWorkingDays(new Date(), 7));
   const [maxDeliveryDate] = useState(() => addWorkingDays(new Date(), 14));
 
-  // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Handle input changes for main form
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
     }));
-    
-    // Clear error for this field when user types
+
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
 
-    // Special handling for routing number: look up bank name
     if (name === 'routingNumber') {
-      // Clear previous timeout
       if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
-      
-      // Set timeout to look up bank name after user stops typing
       const timeout = window.setTimeout(() => {
         const cleanedRouting = value.replace(/\D/g, '');
-        // Only lookup when we have exactly 9 digits
         if (cleanedRouting.length === 9) {
           const bankName = routingNumberDB[cleanedRouting] || 'Unknown Bank';
           setFormData(prev => ({ ...prev, bankName }));
@@ -122,6 +136,15 @@ const SendMoney: React.FC = () => {
     }
   };
 
+  // Handle input changes for security form
+  const handleSecurityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSecurityData(prev => ({ ...prev, [name]: value }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -129,11 +152,14 @@ const SendMoney: React.FC = () => {
     };
   }, [bankLookupTimeout]);
 
-  // Validate form
+  // Validate main form (including balance check for selected account)
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    
-    // Account number: 10-16 digits
+
+    if (!formData.fromAccountId) {
+      newErrors.fromAccountId = 'Please select an account';
+    }
+
     if (!formData.recipientAccount.trim()) {
       newErrors.recipientAccount = 'Recipient account number is required';
     } else {
@@ -142,8 +168,7 @@ const SendMoney: React.FC = () => {
         newErrors.recipientAccount = 'Account number must be 10 to 16 digits';
       }
     }
-    
-    // Routing number: exactly 9 digits
+
     if (!formData.routingNumber.trim()) {
       newErrors.routingNumber = 'Routing number is required';
     } else {
@@ -152,18 +177,26 @@ const SendMoney: React.FC = () => {
         newErrors.routingNumber = 'Routing number must be exactly 9 digits';
       }
     }
-    
+
     if (!formData.recipientName.trim()) {
       newErrors.recipientName = 'Recipient name is required';
     }
-    
-    // Amount: any positive number (no upper limit)
+
     if (!formData.amount) {
       newErrors.amount = 'Amount is required';
-    } else if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      newErrors.amount = 'Please enter a valid amount greater than 0';
+    } else {
+      const amountNum = Number(formData.amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        newErrors.amount = 'Please enter a valid amount greater than 0';
+      } else {
+        // Check against selected account balance
+        const selectedAccount = accounts.find(acc => acc.id === formData.fromAccountId);
+        if (selectedAccount && amountNum > selectedAccount.balance) {
+          newErrors.amount = `Insufficient balance. Available: $${selectedAccount.balance.toLocaleString()}`;
+        }
+      }
     }
-    
+
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     } else if (formData.description.length < 3) {
@@ -182,29 +215,56 @@ const SendMoney: React.FC = () => {
         }
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission (send OTP)
+  // Validate security form – exact match
+  const validateSecurity = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!securityData.motherMaidenName.trim()) {
+      newErrors.motherMaidenName = 'Mother’s maiden name is required';
+    } else if (securityData.motherMaidenName.trim() !== 'Grace Hoffman') {
+      newErrors.motherMaidenName = 'Incorrect mother’s maiden name';
+    }
+
+    if (!securityData.birthYear.trim()) {
+      newErrors.birthYear = 'Birth year is required';
+    } else if (!/^\d{4}$/.test(securityData.birthYear)) {
+      newErrors.birthYear = 'Please enter a valid 4-digit year';
+    } else if (securityData.birthYear !== '1992') {
+      newErrors.birthYear = 'Incorrect birth year';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission -> go to security
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    // Simulate API call to send OTP to user's email
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setStep('otp');
-    } catch (error) {
-      setErrors({ ...errors, otp: 'Failed to send OTP. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setStep('security');
+    setIsLoading(false);
   };
 
-  // Handle OTP verification
+  // Handle security verification -> go to OTP
+  const handleSecuritySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateSecurity()) return;
+
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setStep('otp');
+    setIsLoading(false);
+  };
+
+  // Handle OTP verification, deduct balance, and add transaction
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp) {
@@ -215,34 +275,60 @@ const SendMoney: React.FC = () => {
       setErrors({ ...errors, otp: 'Invalid OTP' });
       return;
     }
-    
+
     setIsLoading(true);
     // Simulate transfer processing
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setStep('success');
-    } catch (error) {
-      setErrors({ ...errors, otp: 'Transfer failed. Please try again.' });
-    } finally {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const amount = Number(formData.amount);
+    // Deduct from selected account
+    const success = deductFromAccount(formData.fromAccountId, amount);
+    if (!success) {
+      setErrors({ ...errors, otp: 'Insufficient balance or account not found' });
       setIsLoading(false);
+      return;
     }
+
+    // Add the transaction to history (pending)
+    const now = new Date();
+    const formattedDate = now.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    });
+    const newTransaction = {
+      id: Date.now().toString(),
+      name: `Transfer to ${formData.recipientName}`,
+      date: formattedDate,
+      amount: amount,
+      type: 'debit' as const,
+      status: 'pending' as const,
+      category: 'Transfer',
+      iconName: 'send'
+    };
+    addTransaction(newTransaction);
+
+    setStep('success');
+    setIsLoading(false);
   };
 
   // Resend OTP
   const handleResendOtp = async () => {
     setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('OTP resent to your email');
-    } finally {
-      setIsLoading(false);
-    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert('OTP resent to your email');
+    setIsLoading(false);
   };
 
   // Go back
   const handleBack = () => {
-    if (step === 'otp') {
+    if (step === 'security') {
       setStep('form');
+      setSecurityData({ motherMaidenName: '', birthYear: '' });
+      setErrors({});
+    } else if (step === 'otp') {
+      setStep('security');
       setOtp('');
       setErrors({});
     } else if (step === 'success') {
@@ -252,14 +338,26 @@ const SendMoney: React.FC = () => {
     }
   };
 
-  // Format amount as currency
   const formatCurrency = (amount: string) => {
     const num = Number(amount);
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
   };
 
+  // Get selected account for display
+  const selectedAccount = accounts.find(acc => acc.id === formData.fromAccountId);
+
   return (
     <div className="send-money-page">
+      {/* Full-page transition loader */}
+      {isLoading && (
+        <div className="global-loader">
+          <div className="loader-content">
+            <Loader size={48} className="spinner" />
+            <p>Processing, please wait...</p>
+          </div>
+        </div>
+      )}
+
       <header className="send-money-header">
         <button className="back-button" onClick={handleBack}>
           <ArrowLeft size={24} />
@@ -271,6 +369,31 @@ const SendMoney: React.FC = () => {
       <div className="send-money-container">
         {step === 'form' && (
           <form onSubmit={handleSendOtp} className="send-money-form">
+            {/* From Account Selection */}
+            <div className="form-group">
+              <label htmlFor="fromAccountId">From Account</label>
+              <select
+                id="fromAccountId"
+                name="fromAccountId"
+                value={formData.fromAccountId}
+                onChange={handleChange}
+                className={errors.fromAccountId ? 'error' : ''}
+                disabled={isLoading}
+              >
+                <option value="">Select an account</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} (${acc.balance.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+              {errors.fromAccountId && (
+                <span className="error-message">
+                  <AlertCircle size={14} /> {errors.fromAccountId}
+                </span>
+              )}
+            </div>
+
             <div className="form-group">
               <label htmlFor="recipientAccount">Recipient Account Number</label>
               <input
@@ -416,9 +539,64 @@ const SendMoney: React.FC = () => {
             </div>
 
             <button type="submit" className="submit-btn" disabled={isLoading}>
-              {isLoading ? 'Sending OTP...' : 'Continue with OTP'}
+              Continue
             </button>
           </form>
+        )}
+
+        {step === 'security' && (
+          <div className="security-container">
+            <div className="security-header">
+              <Shield size={48} className="security-icon" />
+              <h2>Security Verification</h2>
+              <p>Please answer the following security questions</p>
+            </div>
+
+            <form onSubmit={handleSecuritySubmit} className="security-form">
+              <div className="form-group">
+                <label htmlFor="motherMaidenName">Mother's Maiden Name</label>
+                <input
+                  type="text"
+                  id="motherMaidenName"
+                  name="motherMaidenName"
+                  value={securityData.motherMaidenName}
+                  onChange={handleSecurityChange}
+                  placeholder="Enter mother's maiden name"
+                  className={errors.motherMaidenName ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.motherMaidenName && (
+                  <span className="error-message">
+                    <AlertCircle size={14} /> {errors.motherMaidenName}
+                  </span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="birthYear">Birth Year</label>
+                <input
+                  type="text"
+                  id="birthYear"
+                  name="birthYear"
+                  value={securityData.birthYear}
+                  onChange={handleSecurityChange}
+                  placeholder="YYYY"
+                  maxLength={4}
+                  className={errors.birthYear ? 'error' : ''}
+                  disabled={isLoading}
+                />
+                {errors.birthYear && (
+                  <span className="error-message">
+                    <AlertCircle size={14} /> {errors.birthYear}
+                  </span>
+                )}
+              </div>
+
+              <button type="submit" className="submit-btn" disabled={isLoading}>
+                Verify Identity
+              </button>
+            </form>
+          </div>
         )}
 
         {step === 'otp' && (
@@ -462,6 +640,10 @@ const SendMoney: React.FC = () => {
               <div className="transaction-summary">
                 <h3>Transaction Summary</h3>
                 <div className="summary-item">
+                  <span>From:</span>
+                  <span>{selectedAccount ? `${selectedAccount.name} (${selectedAccount.number})` : ''}</span>
+                </div>
+                <div className="summary-item">
                   <span>To:</span>
                   <span>{formData.recipientName}</span>
                 </div>
@@ -503,8 +685,12 @@ const SendMoney: React.FC = () => {
             </div>
             <h2>{formData.schedulePayment ? 'Payment Scheduled!' : 'Transfer Successful!'}</h2>
             <p>{formData.schedulePayment ? 'Your payment has been scheduled.' : 'Your money has been sent successfully.'}</p>
-            
+
             <div className="success-details">
+              <div className="detail-item">
+                <span>From:</span>
+                <strong>{selectedAccount ? selectedAccount.name : ''}</strong>
+              </div>
               <div className="detail-item">
                 <span>Amount:</span>
                 <strong>{formatCurrency(formData.amount)}</strong>
@@ -523,12 +709,10 @@ const SendMoney: React.FC = () => {
                   <strong>{new Date(formData.scheduleDate).toLocaleDateString()}</strong>
                 </div>
               )}
-              {/* Transfer date/time */}
               <div className="detail-item">
                 <span>Transfer Date:</span>
                 <strong>{transferTimestamp.toLocaleString()}</strong>
               </div>
-              {/* Expected delivery range */}
               <div className="detail-item">
                 <span>Est. Delivery:</span>
                 <strong>{formatDate(minDeliveryDate)} – {formatDate(maxDeliveryDate)}</strong>

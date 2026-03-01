@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAccounts } from '../context/AccountContext';
+import { useTransactions, Transaction } from '../context/TransactionContext';
 import {
     Menu,
     X,
@@ -37,30 +39,10 @@ import {
     Target,
     PiggyBank,
     Repeat,
-    RefreshCw
+    RefreshCw,
+    ShoppingBag
 } from 'lucide-react';
-import './BankingDashboard.css'; // Fixed path (assumes same folder)
-
-interface Transaction {
-    id: string;
-    name: string;
-    date: string;
-    amount: number;
-    type: 'credit' | 'debit';
-    status: 'completed' | 'pending' | 'failed';
-    category: string;
-    icon?: React.ReactNode;
-}
-
-interface Account {
-    id: string;
-    type: string;
-    name: string;
-    number: string;
-    balance: number;
-    currency: string;
-    trend: number;
-}
+import './BankingDashboard.css';
 
 interface Investment {
     id: string;
@@ -71,9 +53,37 @@ interface Investment {
     returnPercentage: number;
 }
 
+// Helper function to get icon component from iconName
+const getIcon = (iconName: string, size: number = 18) => {
+    switch (iconName) {
+        case 'send':
+            return <Send size={size} />;
+        case 'credit':
+            return <DollarSign size={size} />;
+        case 'debit':
+            return <CreditCard size={size} />;
+        case 'transfer':
+            return <Repeat size={size} />;
+        case 'investment':
+            return <TrendingUp size={size} />;
+        case 'business':
+            return <Briefcase size={size} />;
+        case 'entertainment':
+            return <Zap size={size} />;
+        case 'shopping':
+            return <ShoppingBag size={size} />;
+        case 'gift':
+            return <Gift size={size} />;
+        default:
+            return <Send size={size} />;
+    }
+};
+
 const BankingDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { accounts } = useAccounts();
+    const { transactions } = useTransactions();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('home');
@@ -81,100 +91,7 @@ const BankingDashboard: React.FC = () => {
     const [selectedAccount, setSelectedAccount] = useState('checking');
     const [timeRange, setTimeRange] = useState('1M');
 
-    // Mock data
-    const accounts: Account[] = [
-        {
-            id: '1',
-            type: 'checking',
-            name: 'Personal Checking',
-            number: '•••• 4582',
-            balance: 28450.75,
-            currency: 'USD',
-            trend: 2.5
-        },
-        {
-            id: '2',
-            type: 'savings',
-            name: 'High-Yield Savings',
-            number: '•••• 9123',
-            balance: 127890.50,
-            currency: 'USD',
-            trend: 4.2
-        },
-        {
-            id: '4',
-            type: 'investment',
-            name: 'Investment Portfolio',
-            number: '•••• 3305',
-            balance: 234567.89,
-            currency: 'USD',
-            trend: 8.3
-        }
-    ];
-
-    const recentTransactions: Transaction[] = [
-        {
-            id: '1',
-            name: 'Apple Store',
-            date: 'Today, 2:30 PM',
-            amount: 1299.99,
-            type: 'debit',
-            status: 'completed',
-            category: 'Shopping',
-            icon: <CreditCard size={18} />
-        },
-        {
-            id: '2',
-            name: 'Salary Deposit',
-            date: 'Yesterday',
-            amount: 5500.00,
-            type: 'credit',
-            status: 'completed',
-            category: 'Income',
-            icon: <DollarSign size={18} />
-        },
-        {
-            id: '3',
-            name: 'Netflix Subscription',
-            date: 'Dec 12, 2025',
-            amount: 15.99,
-            type: 'debit',
-            status: 'completed',
-            category: 'Entertainment',
-            icon: <Zap size={18} />
-        },
-        {
-            id: '4',
-            name: 'Wire Transfer to Savings',
-            date: 'Dec 10, 2025',
-            amount: 2000.00,
-            type: 'debit',
-            status: 'completed',
-            category: 'Transfer',
-            icon: <Send size={18} />
-        },
-        {
-            id: '5',
-            name: 'Amazon Web Services',
-            date: 'Dec 8, 2025',
-            amount: 47.50,
-            type: 'debit',
-            status: 'pending',
-            category: 'Business',
-            icon: <Briefcase size={18} />
-        },
-        {
-            id: '6',
-            name: 'Dividend Payment',
-            date: 'Dec 5, 2025',
-            amount: 125.75,
-            type: 'credit',
-            status: 'completed',
-            category: 'Investment',
-            icon: <TrendingUp size={18} />
-        }
-    ];
-
+    // Mock data (investments, spending categories remain local)
     const investments: Investment[] = [
         {
             id: '1',
@@ -215,7 +132,7 @@ const BankingDashboard: React.FC = () => {
     const monthlyExpenses = 8760.00;
     const savingsRate = ((monthlyIncome - monthlyExpenses) / monthlyIncome * 100).toFixed(1);
 
-    // Navigation items – changed first label from 'Dashboard' to 'Home'
+    // Navigation items
     const navItems = [
         { icon: <Home size={20} />, label: 'Home', active: true },
         { icon: <CreditCard size={20} />, label: 'Accounts' },
@@ -410,7 +327,7 @@ const BankingDashboard: React.FC = () => {
                             className="quick-action-btn"
                             onClick={() => {
                                 if (action.label === 'Send' || action.label === 'Transfer') {
-                                    navigate('/send-money'); // <-- lowercase
+                                    navigate('/send-money');
                                 }
                             }}
                         >
@@ -421,6 +338,7 @@ const BankingDashboard: React.FC = () => {
                         </button>
                     ))}
                 </div>
+
                 {/* Accounts Section */}
                 <div className="section-header">
                     <h2>Your Accounts</h2>
@@ -493,10 +411,10 @@ const BankingDashboard: React.FC = () => {
                 </div>
 
                 <div className="transactions-list">
-                    {recentTransactions.slice(0, 4).map((transaction) => (
+                    {transactions.slice(0, 4).map((transaction) => (
                         <div key={transaction.id} className="transaction-item">
                             <div className="transaction-icon-wrapper">
-                                {transaction.icon}
+                                {getIcon(transaction.iconName)}
                             </div>
                             <div className="transaction-details">
                                 <div className="transaction-top">
