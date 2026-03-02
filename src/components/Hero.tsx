@@ -30,7 +30,7 @@ const Hero: React.FC = () => {
             Secured Banking
           </h1>
           <p className="hero-subtitle">
-            We transformed the digital banking industry using data and technology 
+            Since 1992, we transformed the digital banking industry using data and technology 
             more than 10 years ago. Experience banking reimagined for the modern world.
           </p>
            <button 
