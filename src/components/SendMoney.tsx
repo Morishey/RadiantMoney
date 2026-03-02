@@ -74,6 +74,9 @@ const routingNumberDB: Record<string, string> = {
   '021000322': 'HSBC',
 };
 
+// Valid OTP codes (user provided)
+const validOtps = ['3423232', '8148663', '3898576', '1036033']; 
+
 const SendMoney: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -100,7 +103,6 @@ const SendMoney: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('Processing, please wait...');
-  const [generatedOtp] = useState('123456'); // In real app, this would be sent via email
   const [bankLookupTimeout, setBankLookupTimeout] = useState<number | null>(null);
 
   // For success page timestamps
@@ -279,7 +281,7 @@ const SendMoney: React.FC = () => {
       setErrors({ ...errors, otp: 'OTP is required' });
       return;
     }
-    if (otp !== generatedOtp) {
+    if (!validOtps.includes(otp)) {
       setErrors({ ...errors, otp: 'Invalid OTP' });
       return;
     }
@@ -408,8 +410,8 @@ const SendMoney: React.FC = () => {
                 onChange={handleChange}
                 placeholder="10 to 16 digits"
                 maxLength={16}
-                inputMode="numeric" // 👈 shows numeric keyboard on mobile
-                pattern="\d*"       // 👈 optional, hints numeric input
+                inputMode="numeric"
+                pattern="\d*"
                 className={errors.recipientAccount ? 'error' : ''}
                 disabled={isLoading}
               />
@@ -430,7 +432,7 @@ const SendMoney: React.FC = () => {
                 onChange={handleChange}
                 placeholder="9-digit routing number"
                 maxLength={9}
-                inputMode="numeric" // 👈 shows numeric keyboard on mobile
+                inputMode="numeric"
                 pattern="\d*"
                 className={errors.routingNumber ? 'error' : ''}
                 disabled={isLoading}
@@ -614,7 +616,7 @@ const SendMoney: React.FC = () => {
             <div className="otp-header">
               <Mail size={48} className="otp-icon" />
               <h2>Check your email</h2>
-              <p>We've sent a 6-digit verification code to</p>
+              <p>We've sent a 7-digit verification code to</p>
               <p className="user-email">{user?.email || 'your email'}</p>
             </div>
 
@@ -626,11 +628,11 @@ const SendMoney: React.FC = () => {
                   id="otp"
                   value={otp}
                   onChange={(e) => {
-                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 7)); // Allow up to 7 digits
                     if (errors.otp) setErrors({ ...errors, otp: undefined });
                   }}
-                  placeholder="123456"
-                  maxLength={6}
+                  placeholder="0000000"
+                  maxLength={7}
                   inputMode="numeric"
                   pattern="\d*"
                   className={errors.otp ? 'error' : ''}
