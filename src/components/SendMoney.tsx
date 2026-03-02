@@ -99,6 +99,7 @@ const SendMoney: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loaderMessage, setLoaderMessage] = useState('Processing, please wait...');
   const [generatedOtp] = useState('123456'); // In real app, this would be sent via email
   const [bankLookupTimeout, setBankLookupTimeout] = useState<number | null>(null);
 
@@ -242,13 +243,19 @@ const SendMoney: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission -> go to security
+  // Handle form submission -> go to security with multi‑step loading
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
+    setLoaderMessage('Processing please wait...');
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    setLoaderMessage('Fetching data...');
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     setStep('security');
     setIsLoading(false);
   };
@@ -259,7 +266,8 @@ const SendMoney: React.FC = () => {
     if (!validateSecurity()) return;
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setLoaderMessage('Verifying security...');
+    await new Promise(resolve => setTimeout(resolve, 4000));
     setStep('otp');
     setIsLoading(false);
   };
@@ -277,11 +285,10 @@ const SendMoney: React.FC = () => {
     }
 
     setIsLoading(true);
-    // Simulate transfer processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setLoaderMessage('Processing transfer...');
+    await new Promise(resolve => setTimeout(resolve, 6543));
 
     const amount = Number(formData.amount);
-    // Deduct from selected account
     const success = deductFromAccount(formData.fromAccountId, amount);
     if (!success) {
       setErrors({ ...errors, otp: 'Insufficient balance or account not found' });
@@ -289,7 +296,6 @@ const SendMoney: React.FC = () => {
       return;
     }
 
-    // Add the transaction to history (pending)
     const now = new Date();
     const formattedDate = now.toLocaleString('en-US', {
       month: 'short',
@@ -316,7 +322,8 @@ const SendMoney: React.FC = () => {
   // Resend OTP
   const handleResendOtp = async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    setLoaderMessage('Resending OTP...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
     alert('OTP resent to your email');
     setIsLoading(false);
   };
@@ -343,17 +350,15 @@ const SendMoney: React.FC = () => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
   };
 
-  // Get selected account for display
   const selectedAccount = accounts.find(acc => acc.id === formData.fromAccountId);
 
   return (
     <div className="send-money-page">
-      {/* Full-page transition loader */}
       {isLoading && (
         <div className="global-loader">
           <div className="loader-content">
             <Loader size={48} className="spinner" />
-            <p>Processing, please wait...</p>
+            <p>{loaderMessage}</p>
           </div>
         </div>
       )}
@@ -369,7 +374,6 @@ const SendMoney: React.FC = () => {
       <div className="send-money-container">
         {step === 'form' && (
           <form onSubmit={handleSendOtp} className="send-money-form">
-            {/* From Account Selection */}
             <div className="form-group">
               <label htmlFor="fromAccountId">From Account</label>
               <select
@@ -404,6 +408,8 @@ const SendMoney: React.FC = () => {
                 onChange={handleChange}
                 placeholder="10 to 16 digits"
                 maxLength={16}
+                inputMode="numeric" // 👈 shows numeric keyboard on mobile
+                pattern="\d*"       // 👈 optional, hints numeric input
                 className={errors.recipientAccount ? 'error' : ''}
                 disabled={isLoading}
               />
@@ -424,6 +430,8 @@ const SendMoney: React.FC = () => {
                 onChange={handleChange}
                 placeholder="9-digit routing number"
                 maxLength={9}
+                inputMode="numeric" // 👈 shows numeric keyboard on mobile
+                pattern="\d*"
                 className={errors.routingNumber ? 'error' : ''}
                 disabled={isLoading}
               />
@@ -582,6 +590,8 @@ const SendMoney: React.FC = () => {
                   onChange={handleSecurityChange}
                   placeholder="YYYY"
                   maxLength={4}
+                  inputMode="numeric"
+                  pattern="\d*"
                   className={errors.birthYear ? 'error' : ''}
                   disabled={isLoading}
                 />
@@ -621,6 +631,8 @@ const SendMoney: React.FC = () => {
                   }}
                   placeholder="123456"
                   maxLength={6}
+                  inputMode="numeric"
+                  pattern="\d*"
                   className={errors.otp ? 'error' : ''}
                   disabled={isLoading}
                 />

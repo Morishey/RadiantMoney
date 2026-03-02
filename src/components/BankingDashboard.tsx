@@ -40,7 +40,8 @@ import {
     PiggyBank,
     Repeat,
     RefreshCw,
-    ShoppingBag
+    ShoppingBag,
+    Loader // 👈 added for the spinner
 } from 'lucide-react';
 import './BankingDashboard.css';
 
@@ -90,6 +91,7 @@ const BankingDashboard: React.FC = () => {
     const [showBalance, setShowBalance] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState('checking');
     const [timeRange, setTimeRange] = useState('1M');
+    const [isNavigating, setIsNavigating] = useState(false); // 👈 new state for loading
 
     // Mock data (investments, spending categories remain local)
     const investments: Investment[] = [
@@ -166,8 +168,28 @@ const BankingDashboard: React.FC = () => {
         navigate('/login');
     };
 
+    const handleQuickAction = (label: string) => {
+        if (label === 'Send' || label === 'Transfer') {
+            setIsNavigating(true);
+            setTimeout(() => {
+                navigate('/send-money');
+                // navigation will unmount this component, so no need to set false
+            }, 4000);
+        }
+    };
+
     return (
         <div className="mobile-dashboard">
+            {/* Full‑page navigation loader */}
+            {isNavigating && (
+                <div className="global-loader">
+                    <div className="loader-content">
+                        <Loader size={48} className="spinner" />
+                        <p>Preparing transfer...</p>
+                    </div>
+                </div>
+            )}
+
             {/* Mobile Header */}
             <header className="mobile-header">
                 <div className="header-left">
@@ -325,11 +347,7 @@ const BankingDashboard: React.FC = () => {
                         <button
                             key={index}
                             className="quick-action-btn"
-                            onClick={() => {
-                                if (action.label === 'Send' || action.label === 'Transfer') {
-                                    navigate('/send-money');
-                                }
-                            }}
+                            onClick={() => handleQuickAction(action.label)}
                         >
                             <div className={`quick-action-icon bg-gradient-to-r ${action.color}`}>
                                 {action.icon}
