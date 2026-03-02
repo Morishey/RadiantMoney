@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAccounts } from '../context/AccountContext';
 import { useTransactions, Transaction } from '../context/TransactionContext';
+import { ArrowRightLeft } from 'lucide-react';
 import {
     Menu,
     X,
@@ -41,7 +42,10 @@ import {
     Repeat,
     RefreshCw,
     ShoppingBag,
-    Loader // 👈 added for the spinner
+    Loader,
+    AlertCircle,
+    CheckCircle,
+    XCircle
 } from 'lucide-react';
 import './BankingDashboard.css';
 
@@ -91,7 +95,15 @@ const BankingDashboard: React.FC = () => {
     const [showBalance, setShowBalance] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState('checking');
     const [timeRange, setTimeRange] = useState('1M');
-    const [isNavigating, setIsNavigating] = useState(false); // 👈 new state for loading
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    // Request modal state
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [requestRecipient, setRequestRecipient] = useState('');
+    const [requestToAccountId, setRequestToAccountId] = useState(accounts.length > 0 ? accounts[0].id : '');
+    const [requestError, setRequestError] = useState('');
+    const [isRequestLoading, setIsRequestLoading] = useState(false);
+    const [requestSuccess, setRequestSuccess] = useState(false);
 
     // Mock data (investments, spending categories remain local)
     const investments: Investment[] = [
@@ -173,9 +185,43 @@ const BankingDashboard: React.FC = () => {
             setIsNavigating(true);
             setTimeout(() => {
                 navigate('/send-money');
-                // navigation will unmount this component, so no need to set false
             }, 4000);
+        } else if (label === 'Request') {
+            // Open request modal
+            setIsRequestModalOpen(true);
+            setRequestRecipient('');
+            setRequestToAccountId(accounts[0]?.id || '');
+            setRequestError('');
+            setRequestSuccess(false);
         }
+    };
+
+    // Handle request form submission
+    const handleRequestSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // For demo, any account number is invalid
+        if (!requestRecipient.trim()) {
+            setRequestError('Account number is required');
+            return;
+        }
+        // Simulate invalid account (always show error)
+        setRequestError('Account not found. Please check the number.');
+        return;
+
+        // If we wanted to simulate success, we could add a condition:
+        // if (requestRecipient === '1234567890') { // some valid demo account
+        //   setIsRequestLoading(true);
+        //   setTimeout(() => {
+        //     setIsRequestLoading(false);
+        //     setRequestSuccess(true);
+        //     setTimeout(() => {
+        //       setIsRequestModalOpen(false);
+        //       setRequestSuccess(false);
+        //     }, 2000);
+        //   }, 2000);
+        // } else {
+        //   setRequestError('Account not found');
+        // }
     };
 
     return (
@@ -186,6 +232,82 @@ const BankingDashboard: React.FC = () => {
                     <div className="loader-content">
                         <Loader size={48} className="spinner" />
                         <p>Preparing transfer...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Money Modal */}
+            {isRequestModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsRequestModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-title">
+                                <div className="bank-transfer-icon">
+                                    <Building size={16} className="bank-icon" />
+                                    <ArrowRightLeft size={14} className="arrow-icon" />
+                                    <Building size={16} className="bank-icon" />
+                                </div>
+                                <h2>Request Money</h2>
+                            </div>
+                            <button className="modal-close" onClick={() => setIsRequestModalOpen(false)}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleRequestSubmit}>
+                            <div className="form-group">
+                                <label htmlFor="requestRecipient">CrestcoastHub Account Number</label>
+                                <input
+                                    type="text"
+                                    id="requestRecipient"
+                                    value={requestRecipient}
+                                    onChange={(e) => {
+                                        setRequestRecipient(e.target.value);
+                                        setRequestError('');
+                                    }}
+                                    placeholder="Enter account number"
+                                    inputMode="numeric"
+                                    maxLength={10}
+                                    pattern="\d*"
+                                    disabled={isRequestLoading}
+                                />
+                                {requestError && (
+                                    <span className="error-message">
+                                        <AlertCircle size={14} /> {requestError}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="requestToAccount">Request into account</label>
+                                <select
+                                    id="requestToAccount"
+                                    value={requestToAccountId}
+                                    onChange={(e) => setRequestToAccountId(e.target.value)}
+                                    disabled={isRequestLoading}
+                                >
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name} (${acc.balance.toLocaleString()})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {requestSuccess ? (
+                                <div className="success-message">
+                                    <CheckCircle size={48} className="success-icon" />
+                                    <p>Request sent successfully!</p>
+                                </div>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    className="submit-btn"
+                                    disabled={isRequestLoading}
+                                >
+                                    {isRequestLoading ? 'Sending...' : 'Send Request'}
+                                </button>
+                            )}
+                        </form>
                     </div>
                 </div>
             )}
