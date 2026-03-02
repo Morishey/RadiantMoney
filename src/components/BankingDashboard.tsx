@@ -283,7 +283,7 @@ const BankingDashboard: React.FC = () => {
                 {/* Welcome Section */}
                 <div className="welcome-section">
                     <div className="welcome-text">
-                        <h1>Welcome back, John! 👋</h1>
+                        <h1>Welcome back, Ogbeni Bro! 👋</h1>
                         <p>Here's your financial overview</p>
                     </div>
                     <div className="date-badge">
