@@ -448,7 +448,7 @@ const SendMoney: React.FC = () => {
 
         setIsLoading(true);
         setLoaderMessage('Processing transfer...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 8000));
 
         // Double-check OTP validity (in case it was auto-verified)
         if (!validOtps.includes(otp)) {
