@@ -632,7 +632,7 @@ const SendMoney: React.FC = () => {
                                 </span>
                             )}
                             {formData.bankName && (
-                                <span className="bank-name-hint">Bank: {formData.bankName}</span>
+                                <span className="bank-name-hint">{formData.bankName}</span>
                             )}
                         </div>
 

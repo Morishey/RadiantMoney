@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
 import { AuthProvider } from './context/AuthContext';
 import { AccountProvider } from './context/AccountContext';
-import { TransactionProvider } from './context/TransactionContext'; // 👈 New import
+import { TransactionProvider } from './context/TransactionContext';
 import './App.css';
 
 // Import components
@@ -24,6 +24,7 @@ import SendMoney from './components/SendMoney';
 // Import pages
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import TemporaryAccess from './pages/TemporaryAccess'; // 👈 Import TemporaryAccess
 
 // Home Page Component
 const HomePage: React.FC = () => {
@@ -58,13 +59,16 @@ function App() {
     <Router>
       <AuthProvider>
         <AccountProvider>
-          <TransactionProvider>  {/* 👈 Wrap with TransactionProvider */}
+          <TransactionProvider>
             <div className="App">
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                
+                {/* 👇 NEW: Temporary Access Route */}
+                <Route path="/temp-access/:token" element={<TemporaryAccess />} />
 
                 {/* Protected Dashboard Route */}
                 <Route
