@@ -560,21 +560,28 @@ const SendMoney: React.FC = () => {
                     <form onSubmit={handleSendOtp} className="send-money-form">
                         <div className="form-group">
                             <label htmlFor="fromAccountId">From Account</label>
-                            <select
-                                id="fromAccountId"
-                                name="fromAccountId"
-                                value={formData.fromAccountId}
-                                onChange={handleChange}
-                                className={errors.fromAccountId ? 'error' : ''}
-                                disabled={isLoading}
-                            >
-                                <option value="">Select an account</option>
-                                {accounts.map(acc => (
-                                    <option key={acc.id} value={acc.id}>
-                                        {acc.name} (${acc.balance.toLocaleString()})
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="custom-select-wrapper">
+                                <select
+                                    id="fromAccountId"
+                                    name="fromAccountId"
+                                    value={formData.fromAccountId}
+                                    onChange={handleChange}
+                                    className={`custom-select ${errors.fromAccountId ? 'error' : ''}`}
+                                    disabled={isLoading}
+                                >
+                                    <option value="">Select an account</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id} data-balance={acc.balance} data-name={acc.name}>
+                                            {acc.name} (••••{acc.number?.slice(-4) || '0000'}) - ${acc.balance.toLocaleString()}
+                                        </option>
+                                    ))}
+                                </select>
+                                {formData.fromAccountId && (
+                                    <div className="selected-display">
+                                        {selectedAccount?.name} - ${selectedAccount?.balance.toLocaleString()}
+                                    </div>
+                                )}
+                            </div>
                             {errors.fromAccountId && (
                                 <span className="error-message">
                                     <AlertCircle size={14} /> {errors.fromAccountId}
@@ -919,7 +926,11 @@ const SendMoney: React.FC = () => {
                         <div className="success-details">
                             <div className="detail-item">
                                 <span>From:</span>
-                                <strong>{selectedAccount ? selectedAccount.name : ''}</strong>
+                                <strong>
+                                    {selectedAccount
+                                        ? `${selectedAccount.name} (••••${selectedAccount.number?.slice(-4) || '0000'})`
+                                        : ''}
+                                </strong>
                             </div>
                             <div className="detail-item">
                                 <span>Amount:</span>
