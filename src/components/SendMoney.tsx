@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAccounts } from '../context/AccountContext';
 import { useTransactions } from '../context/TransactionContext';
-import { ArrowLeft, Shield, Mail, AlertCircle, CheckCircle, Loader, Send } from 'lucide-react';
+import { ArrowLeft, Shield, Mail, AlertCircle, CheckCircle, Loader, Send, Check } from 'lucide-react';
 import './SendMoney.css';
 
 // Helper to add working days (Mon-Fri) to a date
@@ -67,6 +67,11 @@ interface FormErrors {
     birthYear?: string;
     otp?: string;
     general?: string;
+}
+
+interface Notification {
+    type: 'success' | 'error' | 'info';
+    message: string;
 }
 
 // Mock database of routing numbers (9-digit keys) to bank names
@@ -195,8 +200,11 @@ const SendMoney: React.FC = () => {
         birthYear: '',
     });
     const [errors, setErrors] = useState<FormErrors>({});
+    const [notification, setNotification] = useState<Notification | null>(null);
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isOtpVerifying, setIsOtpVerifying] = useState(false);
+    const [isResendingOtp, setIsResendingOtp] = useState(false);
     const [loaderMessage, setLoaderMessage] = useState('Processing, please wait...');
     const [bankLookupTimeout, setBankLookupTimeout] = useState<number | null>(null);
 
@@ -254,12 +262,53 @@ const SendMoney: React.FC = () => {
         }
     };
 
+    // Handle OTP input change with auto-verification
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 7);
+        setOtp(value);
+        if (errors.otp) setErrors({ ...errors, otp: undefined });
+        if (notification) setNotification(null);
+
+        // When 7 digits are entered, trigger verification
+        if (value.length === 7) {
+            handleAutoVerifyOtp(value);
+        }
+    };
+
+    // Auto-verify OTP when 7 digits are entered
+    const handleAutoVerifyOtp = async (otpValue: string) => {
+        setIsOtpVerifying(true);
+
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (!validOtps.includes(otpValue)) {
+            setErrors({ ...errors, otp: 'Invalid OTP' });
+            setIsOtpVerifying(false);
+            return;
+        }
+
+        // Clear any previous errors
+        setErrors({ ...errors, otp: undefined });
+        setIsOtpVerifying(false);
+    };
+
     // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
             if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
         };
     }, [bankLookupTimeout]);
+
+    // Auto-hide notification after 5 seconds
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => {
+                setNotification(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
 
     // Validate main form (including balance check for selected account)
     const validateForm = (): boolean => {
@@ -383,18 +432,30 @@ const SendMoney: React.FC = () => {
     // Handle OTP verification, deduct balance, and add transaction
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!otp) {
-            setErrors({ ...errors, otp: 'OTP is required' });
+
+        // Don't proceed if OTP is not 7 digits or is currently verifying
+        if (otp.length !== 7 || isOtpVerifying) {
+            if (otp.length !== 7) {
+                setErrors({ ...errors, otp: 'Please enter a 7-digit OTP' });
+            }
             return;
         }
-        if (!validOtps.includes(otp)) {
-            setErrors({ ...errors, otp: 'Invalid OTP' });
+
+        // If OTP was already verified as invalid, show error
+        if (errors.otp === 'Invalid OTP') {
             return;
         }
 
         setIsLoading(true);
         setLoaderMessage('Processing transfer...');
-        await new Promise(resolve => setTimeout(resolve, 6543));
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Double-check OTP validity (in case it was auto-verified)
+        if (!validOtps.includes(otp)) {
+            setErrors({ ...errors, otp: 'Invalid OTP' });
+            setIsLoading(false);
+            return;
+        }
 
         const amount = Number(formData.amount);
         const success = deductFromAccount(formData.fromAccountId, amount);
@@ -427,13 +488,25 @@ const SendMoney: React.FC = () => {
         setIsLoading(false);
     };
 
-    // Resend OTP
+    // Resend OTP with inline notification
     const handleResendOtp = async () => {
-        setIsLoading(true);
-        setLoaderMessage('Resending OTP...');
+        setIsResendingOtp(true);
+        setNotification(null);
+
+        // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 2000));
-        alert('OTP resent to your email');
-        setIsLoading(false);
+
+        // Show success notification
+        setNotification({
+            type: 'success',
+            message: 'A new OTP has been sent to your email'
+        });
+
+        // Clear OTP field for new code
+        setOtp('');
+        setErrors({ ...errors, otp: undefined });
+
+        setIsResendingOtp(false);
     };
 
     // Go back
@@ -442,10 +515,13 @@ const SendMoney: React.FC = () => {
             setStep('form');
             setSecurityData({ motherMaidenName: '', birthYear: '' });
             setErrors({});
+            setNotification(null);
         } else if (step === 'otp') {
             setStep('security');
             setOtp('');
+            setIsOtpVerifying(false);
             setErrors({});
+            setNotification(null);
         } else if (step === 'success') {
             navigate('/dashboard');
         } else {
@@ -718,6 +794,14 @@ const SendMoney: React.FC = () => {
 
                 {step === 'otp' && (
                     <div className="otp-container">
+                        {notification && (
+                            <div className={`notification ${notification.type}`}>
+                                {notification.type === 'success' && <Check size={18} />}
+                                {notification.type === 'error' && <AlertCircle size={18} />}
+                                <span>{notification.message}</span>
+                            </div>
+                        )}
+
                         <div className="otp-header">
                             <Mail size={48} className="otp-icon" />
                             <h2>Check your email</h2>
@@ -728,21 +812,32 @@ const SendMoney: React.FC = () => {
                         <form onSubmit={handleVerifyOtp} className="otp-form">
                             <div className="form-group">
                                 <label htmlFor="otp">Enter OTP</label>
-                                <input
-                                    type="text"
-                                    id="otp"
-                                    value={otp}
-                                    onChange={(e) => {
-                                        setOtp(e.target.value.replace(/\D/g, '').slice(0, 7));
-                                        if (errors.otp) setErrors({ ...errors, otp: undefined });
-                                    }}
-                                    placeholder="0000000"
-                                    maxLength={7}
-                                    inputMode="numeric"
-                                    pattern="\d*"
-                                    className={errors.otp ? 'error' : ''}
-                                    disabled={isLoading}
-                                />
+                                <div className="otp-input-wrapper">
+                                    <input
+                                        type="text"
+                                        id="otp"
+                                        value={otp}
+                                        onChange={handleOtpChange}
+                                        placeholder="0000000"
+                                        maxLength={7}
+                                        inputMode="numeric"
+                                        pattern="\d*"
+                                        className={`otp-input ${errors.otp ? 'error' : ''} ${isOtpVerifying ? 'verifying' : ''} ${!errors.otp && otp.length === 7 && !isOtpVerifying && validOtps.includes(otp) ? 'verified' : ''}`}
+                                        disabled={isLoading || isOtpVerifying || isResendingOtp}
+                                    />
+                                    {isOtpVerifying && (
+                                        <div className="otp-verifying">
+                                            <Loader size={20} className="spinner" />
+                                            <span>Verifying...</span>
+                                        </div>
+                                    )}
+                                    {!isOtpVerifying && otp.length === 7 && !errors.otp && validOtps.includes(otp) && (
+                                        <div className="otp-verified">
+                                            <Check size={20} />
+                                            <span>Verified!</span>
+                                        </div>
+                                    )}
+                                </div>
                                 {errors.otp && (
                                     <span className="error-message">
                                         <AlertCircle size={14} /> {errors.otp}
@@ -751,8 +846,20 @@ const SendMoney: React.FC = () => {
                             </div>
 
                             <div className="otp-actions">
-                                <button type="button" className="resend-btn" onClick={handleResendOtp} disabled={isLoading}>
-                                    Resend OTP
+                                <button
+                                    type="button"
+                                    className={`resend-btn ${isResendingOtp ? 'resending' : ''}`}
+                                    onClick={handleResendOtp}
+                                    disabled={isLoading || isOtpVerifying || isResendingOtp}
+                                >
+                                    {isResendingOtp ? (
+                                        <>
+                                            <Loader size={16} className="spinner" />
+                                            <span>Resending...</span>
+                                        </>
+                                    ) : (
+                                        'Resend OTP'
+                                    )}
                                 </button>
                             </div>
 
@@ -790,7 +897,11 @@ const SendMoney: React.FC = () => {
                                 )}
                             </div>
 
-                            <button type="submit" className="submit-btn" disabled={isLoading}>
+                            <button
+                                type="submit"
+                                className="submit-btn"
+                                disabled={isLoading || isOtpVerifying || isResendingOtp || otp.length !== 7 || errors.otp === 'Invalid OTP'}
+                            >
                                 {isLoading ? 'Processing...' : 'Verify & Send'}
                             </button>
                         </form>
