@@ -1480,6 +1480,7 @@ body.modal-open {
   animation: slideUp 0.5s ease;
 }
 
+
 /* Brand Panel */
 .auth-brand-panel {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

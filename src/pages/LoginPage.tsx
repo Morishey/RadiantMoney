@@ -14,47 +14,43 @@ const LoginPage: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const DEMO_CREDENTIALS = {
-    email: 'john@crestbank.com',
+    email: 'paul@crestbank.com',
     password: 'password123'
   };
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
-
     if (!email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Please enter a valid email';
     }
-
     if (!password) {
       newErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsLoading(true);
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
-        // Create user object and call context login
+        // Simulate a token (in real app this comes from backend)
+        const fakeToken = 'demo-jwt-token-' + Date.now();
         const userData = {
           id: '1',
           name: 'John Anderson',
           email: email,
         };
-        login(userData); // This updates context state and localStorage
+        login(userData, fakeToken); // Now login expects a token
         navigate('/dashboard');
       } else {
         setErrors({
@@ -70,6 +66,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
+    // ... rest of your JSX (unchanged)
     <div className="auth-page">
       <div className="auth-container">
         {/* Left Panel - Branding */}
@@ -79,10 +76,8 @@ const LoginPage: React.FC = () => {
               <Building2 className="logo-icon" size={40} />
               <span className="logo-text">CrestcoastHub</span>
             </Link>
-
             <h1>Welcome Back!</h1>
             <p className="auth-subtitle">Access your secure banking dashboard and manage your finances with ease.</p>
-
             <div className="auth-features">
               <div className="feature-item">
                 <Shield size={20} />
@@ -93,11 +88,9 @@ const LoginPage: React.FC = () => {
                 <span>Biometric Ready</span>
               </div>
             </div>
-
             <div className="auth-testimonial">
               <p>"The most secure and user-friendly banking platform I've ever used."</p>
-              <div className="testimonial-author">
-              </div>
+              <div className="testimonial-author"></div>
             </div>
           </div>
         </div>
