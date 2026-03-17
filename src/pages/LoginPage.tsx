@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const DEMO_CREDENTIALS = {
-    email: 'paul@crestbank.com',
+    email: 'jake@crestbank.com',
     password: 'password123'
   };
 
@@ -42,7 +42,8 @@ const LoginPage: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
+      // Case‑insensitive email comparison
+      if (email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase() && password === DEMO_CREDENTIALS.password) {
         // Simulate a token (in real app this comes from backend)
         const fakeToken = 'demo-jwt-token-' + Date.now();
         const userData = {
@@ -50,7 +51,7 @@ const LoginPage: React.FC = () => {
           name: 'John Anderson',
           email: email,
         };
-        login(userData, fakeToken); // Now login expects a token
+        login(userData, fakeToken);
         navigate('/dashboard');
       } else {
         setErrors({
@@ -66,7 +67,6 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    // ... rest of your JSX (unchanged)
     <div className="auth-page">
       <div className="auth-container">
         {/* Left Panel - Branding */}
