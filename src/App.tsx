@@ -24,7 +24,7 @@ import SendMoney from './components/SendMoney';
 // Import pages
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import TemporaryAccess from './pages/TemporaryAccess'; // 👈 Import TemporaryAccess
+import TemporaryAccess from './pages/TemporaryAccess';
 
 // Home Page Component
 const HomePage: React.FC = () => {
@@ -67,7 +67,7 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 
-                {/* 👇 NEW: Temporary Access Route */}
+                {/* Temporary Access Route */}
                 <Route path="/temp-access/:token" element={<TemporaryAccess />} />
 
                 {/* Protected Dashboard Route */}

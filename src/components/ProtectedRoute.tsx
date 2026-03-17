@@ -17,6 +17,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         logout();
       }
     }
+    
+    // Check session timeout for regular users (additional check)
+    if (user?.role === 'user' && user.sessionTimeout) {
+      const lastActivity = localStorage.getItem('last_activity');
+      if (lastActivity) {
+        const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+        if (timeSinceLastActivity > user.sessionTimeout) {
+          console.log('Session expired in ProtectedRoute');
+          logout();
+        }
+      }
+    }
   }, [user, logout]);
 
   if (!isAuthenticated) {

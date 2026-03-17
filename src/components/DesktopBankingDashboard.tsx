@@ -387,7 +387,6 @@ const DesktopBankingDashboard: React.FC = () => {
                 <div className="welcome-banner">
                     <div className="welcome-text">
                         <h2>Welcome back, Ogbeni Bro! 👋</h2>
-                        <p>Here's what's happening with your finances today.</p>
                     </div>
                     <div className="banner-actions">
                         <button className="action-btn primary">

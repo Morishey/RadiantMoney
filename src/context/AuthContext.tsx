@@ -4,7 +4,8 @@ import React, {
   useContext,
   ReactNode,
   useEffect,
-  useCallback
+  useCallback,
+  useRef
 } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,10 +17,12 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?: 'user' | 'admin';
   isTemporary?: boolean;
   expiresAt?: number;
   deviceId?: string;
   sessionId?: string;
+  sessionTimeout?: number | null;
 }
 
 interface AuthContextType {
@@ -41,6 +44,23 @@ const TOKEN_KEY = "token";
 const AUTH_KEY = "isAuthenticated";
 const GLOBAL_SESSION_KEY = "crest_global_session";
 const DEVICE_KEY = "device_id";
+const LAST_ACTIVITY_KEY = "last_activity";
+const SESSION_TIMEOUT_KEY = "session_timeout";
+
+/* =========================
+   LOGIN ATTEMPT TRACKING
+========================= */
+
+interface LoginAttempt {
+  count: number;
+  firstAttemptTime: number;
+  blockedUntil?: number;
+}
+
+const LOGIN_ATTEMPTS_KEY = "login_attempts";
+const MAX_ATTEMPTS = 3;
+const COOLDOWN_HOURS = 24;
+const COOLDOWN_MS = COOLDOWN_HOURS * 60 * 60 * 1000;
 
 /* =========================
    TEMP TOKEN STORE
@@ -92,46 +112,177 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load stored data on mount
+  /* =========================
+     LOGOUT (defined first)
+  ========================= */
+
+  const logout = useCallback(() => {
+    console.log('Logout called');
+    
+    // Clear all timers
+    if (sessionTimerRef.current) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    if (activityCheckIntervalRef.current) {
+      clearInterval(activityCheckIntervalRef.current);
+      activityCheckIntervalRef.current = null;
+    }
+    
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
+    localStorage.removeItem(SESSION_TIMEOUT_KEY);
+    
+    navigate("/login");
+  }, [navigate]);
+
+  /* =========================
+     SESSION MANAGEMENT
+  ========================= */
+
+  const clearSessionTimer = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+  }, []);
+
+  const checkSessionExpiry = useCallback(() => {
+    if (!user) return;
+    
+    if (user.role === 'user' && user.sessionTimeout) {
+      const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+      if (lastActivity) {
+        const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+        if (timeSinceLastActivity > user.sessionTimeout) {
+          console.log('Session expired due to inactivity');
+          logout();
+        }
+      }
+    }
+  }, [user, logout]);
+
+  const startSessionTimer = useCallback((timeout: number) => {
+    clearSessionTimer();
+    
+    localStorage.setItem(SESSION_TIMEOUT_KEY, timeout.toString());
+    
+    sessionTimerRef.current = setTimeout(() => {
+      console.log('Session timer expired - logging out');
+      logout();
+    }, timeout);
+  }, [clearSessionTimer, logout]);
+
+  const updateLastActivity = useCallback(() => {
+    if (user?.role === 'user') {
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+      
+      if (user.sessionTimeout) {
+        clearSessionTimer();
+        sessionTimerRef.current = setTimeout(() => {
+          console.log('Session expired after inactivity');
+          logout();
+        }, user.sessionTimeout);
+      }
+    }
+  }, [user, clearSessionTimer, logout]);
+
+  /* =========================
+     LOAD STORED DATA
+  ========================= */
+
   useEffect(() => {
     const savedUser = localStorage.getItem(USER_KEY);
     const savedToken = localStorage.getItem(TOKEN_KEY);
+    
     if (savedUser && savedToken) {
-      const parsedUser = JSON.parse(savedUser);
-      // Check temporary expiration
-      if (parsedUser.isTemporary && parsedUser.expiresAt) {
-        if (Date.now() > parsedUser.expiresAt) {
-          logout();
-          setIsLoading(false);
-          return;
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        console.log('Loaded saved user:', parsedUser);
+        
+        if (parsedUser.isTemporary && parsedUser.expiresAt) {
+          if (Date.now() > parsedUser.expiresAt) {
+            console.log('Temporary user expired');
+            logout();
+            setIsLoading(false);
+            return;
+          }
         }
+        
+        if (parsedUser.role === 'user' && parsedUser.sessionTimeout) {
+          const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+          if (lastActivity) {
+            const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+            if (timeSinceLastActivity > parsedUser.sessionTimeout) {
+              console.log('Session expired - logging out');
+              logout();
+              setIsLoading(false);
+              return;
+            }
+          }
+          
+          const remainingTime = parsedUser.sessionTimeout - (Date.now() - parseInt(lastActivity || Date.now().toString()));
+          if (remainingTime > 0) {
+            startSessionTimer(remainingTime);
+          } else {
+            logout();
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        setUser(parsedUser);
+        setToken(savedToken);
+      } catch (error) {
+        console.error('Error loading saved user:', error);
+        logout();
       }
-      setUser(parsedUser);
-      setToken(savedToken);
     }
     setIsLoading(false);
   }, []);
 
-  // Validate token with backend on startup (optional)
-  useEffect(() => {
-    const validateToken = async () => {
-      if (!token || !user) return;
-      try {
-        const response = await fetch("/api/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error("Token invalid");
-        const userData = await response.json();
-        // Optionally update user data
-      } catch {
-        logout();
-      }
-    };
-    validateToken();
-  }, []);
+  /* =========================
+     ACTIVITY LISTENERS
+  ========================= */
 
-  // Listen for changes in localStorage (other tabs)
+  useEffect(() => {
+    if (user?.role === 'user' && user.sessionTimeout) {
+      const activityEvents = ['mousedown', 'keydown', 'scroll', 'mousemove', 'touchstart'];
+      
+      const handleActivity = () => {
+        updateLastActivity();
+      };
+      
+      activityEvents.forEach(event => {
+        window.addEventListener(event, handleActivity);
+      });
+      
+      activityCheckIntervalRef.current = setInterval(() => {
+        checkSessionExpiry();
+      }, 60000);
+      
+      return () => {
+        activityEvents.forEach(event => {
+          window.removeEventListener(event, handleActivity);
+        });
+        if (activityCheckIntervalRef.current) {
+          clearInterval(activityCheckIntervalRef.current);
+        }
+      };
+    }
+  }, [user, updateLastActivity, checkSessionExpiry]);
+
+  /* =========================
+     STORAGE CHANGE LISTENER
+  ========================= */
+
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === GLOBAL_SESSION_KEY) {
@@ -145,24 +296,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         }
       }
       if (e.key === TOKEN_KEY && !e.newValue) {
-        logout(); // token was removed in another tab
+        logout();
+      }
+      if (e.key === LAST_ACTIVITY_KEY) {
+        checkSessionExpiry();
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [logout, checkSessionExpiry]);
 
-  // Listen for "unauthorized" event from axios interceptor
+  /* =========================
+     UNAUTHORIZED EVENT LISTENER
+  ========================= */
+
   useEffect(() => {
     const handleUnauthorized = () => {
       logout();
     };
     window.addEventListener("unauthorized", handleUnauthorized);
     return () => window.removeEventListener("unauthorized", handleUnauthorized);
-  }, []);
+  }, [logout]);
 
-  // Auto logout for temporary users
+  /* =========================
+     TEMP USER EXPIRY CHECK
+  ========================= */
+
   useEffect(() => {
     const timer = setInterval(() => {
       if (user?.isTemporary && user.expiresAt) {
@@ -172,41 +332,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     }, 60000);
     return () => clearInterval(timer);
-  }, [user]);
+  }, [user, logout]);
+
+  /* =========================
+     CLEANUP
+  ========================= */
+
+  useEffect(() => {
+    return () => {
+      if (sessionTimerRef.current) {
+        clearTimeout(sessionTimerRef.current);
+      }
+      if (activityCheckIntervalRef.current) {
+        clearInterval(activityCheckIntervalRef.current);
+      }
+    };
+  }, []);
 
   /* =========================
      LOGIN
   ========================= */
 
   const login = (userData: User, newToken: string) => {
-    const sessionId = generateToken(); // new session ID for this login
+    console.log('Login called with:', userData, newToken);
+    
+    const sessionId = generateToken();
+    const deviceId = getDeviceId();
+    
+    let sessionTimeout = null;
+    if (userData.role === 'user') {
+      sessionTimeout = 60 * 1000;
+    }
+    
     const userWithSession = {
       ...userData,
       sessionId,
-      deviceId: getDeviceId()
+      deviceId,
+      sessionTimeout
     };
 
     localStorage.setItem(GLOBAL_SESSION_KEY, sessionId);
     localStorage.setItem(USER_KEY, JSON.stringify(userWithSession));
     localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(AUTH_KEY, "true");
+    
+    if (userData.role === 'user') {
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+      
+      if (sessionTimeout) {
+        startSessionTimer(sessionTimeout);
+      }
+    }
 
     setUser(userWithSession);
     setToken(newToken);
+    
+    console.log('User set, isAuthenticated should be true');
   };
-
-  /* =========================
-     LOGOUT
-  ========================= */
-
-  const logout = useCallback(() => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(AUTH_KEY);
-    navigate("/login");
-  }, [navigate]);
 
   /* =========================
      TEMP ACCESS LINK
@@ -249,12 +431,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       id: `temp_${Date.now()}`,
       name: "Guest User",
       email: tokenData.email,
+      role: 'user',
       isTemporary: true,
       expiresAt: tokenData.expiresAt,
       deviceId
     };
 
-    // Generate a dummy token for the temporary session
     const tempToken = generateToken();
     login(tempUser, tempToken);
 
@@ -275,6 +457,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     generateTemporaryAccess,
     verifyTemporaryAccess
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

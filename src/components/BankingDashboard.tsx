@@ -335,7 +335,7 @@ const BankingDashboard: React.FC = () => {
             </header>
 
             {/* Search Bar */}
-            <div className="search-container">
+            {/* <div className="search-container">
                 <div className="search-wrapper">
                     <Search size={18} className="search-icon" />
                     <input
@@ -344,7 +344,7 @@ const BankingDashboard: React.FC = () => {
                         className="search-input"
                     />
                 </div>
-            </div>
+            </div> */}
 
             {/* Mobile Side Menu */}
             {isMobileMenuOpen && (
@@ -404,10 +404,9 @@ const BankingDashboard: React.FC = () => {
             <main className="mobile-content">
                 {/* Welcome Section */}
                 <div className="welcome-section">
-                    <div className="welcome-text">
-                        <h1>Welcome back, Ogbeni Bro! 👋</h1>
-                        <p>Here's your financial overview</p>
-                    </div>
+                    {/* <div className="welcome-text">
+                        <h1>Welcome back, Pussy Bro! 👋</h1>
+                    </div> */}
                     <div className="date-badge">
                         <Clock size={14} />
                         <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
