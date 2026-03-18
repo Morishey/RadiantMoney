@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const DEMO_CREDENTIALS = {
-    email: 'jake@crestcoasthub.com',
+    email: 'joke@crestcoasthub.com',
     password: 'password123'
   };
 
