@@ -24,8 +24,8 @@ const LoginPage: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const DEMO_CREDENTIALS = {
-    email: 'joke@crestcoasthub.com',
-    password: 'password123'
+    email: 'hovacation45@gmail.com',
+    password: 'john123'
   };
 
   const ADMIN_CREDENTIALS = {
@@ -209,7 +209,7 @@ const LoginPage: React.FC = () => {
         const fakeToken = 'demo-jwt-token-' + Date.now();
         const userData = {
           id: '1',
-          name: 'Jake Anderson',
+          name: 'John Eric',
           email: email,
           role: 'user' as const,
           sessionTimeout: 60 * 1000

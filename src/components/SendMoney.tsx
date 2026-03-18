@@ -392,7 +392,7 @@ const SendMoney: React.FC = () => {
             newErrors.birthYear = 'Birth year is required';
         } else if (!/^\d{4}$/.test(securityData.birthYear)) {
             newErrors.birthYear = 'Please enter a valid 4-digit year';
-        } else if (securityData.birthYear !== '1989') {
+        } else if (securityData.birthYear !== '1945') {
             newErrors.birthYear = 'Incorrect birth year';
         }
 
