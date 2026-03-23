@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
 
   const DEMO_CREDENTIALS = {
     email: 'Truebluedude@hotmail.com',
-    password: 'Marcoo123'
+    password: 'Marcoosoup123'
   };
 
   const ADMIN_CREDENTIALS = {
