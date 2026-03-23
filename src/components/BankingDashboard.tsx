@@ -208,20 +208,6 @@ const BankingDashboard: React.FC = () => {
         setRequestError('Account not found. Please check the number.');
         return;
 
-        // If we wanted to simulate success, we could add a condition:
-        // if (requestRecipient === '1234567890') { // some valid demo account
-        //   setIsRequestLoading(true);
-        //   setTimeout(() => {
-        //     setIsRequestLoading(false);
-        //     setRequestSuccess(true);
-        //     setTimeout(() => {
-        //       setIsRequestModalOpen(false);
-        //       setRequestSuccess(false);
-        //     }, 2000);
-        //   }, 2000);
-        // } else {
-        //   setRequestError('Account not found');
-        // }
     };
 
     return (
@@ -362,13 +348,13 @@ const BankingDashboard: React.FC = () => {
                                 <X size={24} />
                             </button>
                         </div>
-
+ 
                         <div className="user-profile-card">
                             <div className="user-avatar">
                                 <User size={24} />
                             </div>
                             <div className="user-details">
-                                <span className="user-fullname">John Eric</span>
+                                <span className="user-fullname">Marc Goldberg </span>
                                 <span className="user-email">hovacation45@gmail.com</span>
                             </div>
                         </div>
@@ -402,16 +388,17 @@ const BankingDashboard: React.FC = () => {
 
             {/* Main Content */}
             <main className="mobile-content">
+               
                 {/* Welcome Section */}
-                <div className="welcome-section">
-                    {/* <div className="welcome-text">
+                {/* <div className="welcome-section">
+                    <div className="welcome-text">
                         <h1>Welcome back, Pussy Bro! 👋</h1>
-                    </div> */}
+                    </div>
                     <div className="date-badge">
                         <Clock size={14} />
                         <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Balance Card */}
                 <div className="balance-card">

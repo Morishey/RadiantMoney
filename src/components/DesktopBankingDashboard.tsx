@@ -311,7 +311,7 @@ const DesktopBankingDashboard: React.FC = () => {
                         <User size={24} />
                     </div>
                     <div className="user-details">
-                        <span className="user-name">John Eric</span>
+                        <span className="user-name">Marc Goldberg </span>
                         <span className="user-email">hovacation45@gmail.com</span>
                     </div>
                 </div>
@@ -386,7 +386,7 @@ const DesktopBankingDashboard: React.FC = () => {
                 {/* Welcome Banner */}
                 <div className="welcome-banner">
                     <div className="welcome-text">
-                        <h2>Welcome back, John! 👋</h2>
+                        <h2>Welcome back, Marc! 👋</h2>
                     </div>
                     <div className="banner-actions">
                         <button className="action-btn primary">
