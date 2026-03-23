@@ -11,7 +11,12 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ 
+    email?: string; 
+    password?: string; 
+    general?: string;
+    field?: 'email' | 'password' | null;
+  }>({});
   const [blockedTime, setBlockedTime] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<string>('');
 
@@ -87,19 +92,28 @@ const LoginPage: React.FC = () => {
   };
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string; field?: 'email' | 'password' | null } = {};
+    
+    // Email validation
     if (!email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Email address is required';
+      newErrors.field = 'email';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = 'Please enter a valid email address (e.g., name@example.com)';
+      newErrors.field = 'email';
     }
+    
+    // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
+      if (!newErrors.field) newErrors.field = 'password';
     } else if (password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+      if (!newErrors.field) newErrors.field = 'password';
     }
+    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).filter(key => key !== 'field').length === 0;
   };
 
   const recordFailedAttempt = async (emailToRecord: string) => {
@@ -169,11 +183,17 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate form
     if (!validateForm()) return;
     
+    // Check if account is blocked
     if (blockedTime) {
       setErrors({
-        general: `This account is temporarily locked. Please try again in ${countdown}.`
+        general: `This account is temporarily locked due to multiple failed attempts. Please try again in ${countdown}.`
       });
       return;
     }
@@ -181,6 +201,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       console.log('Attempting login with:', { email, password });
@@ -223,27 +244,44 @@ const LoginPage: React.FC = () => {
         if (result?.blocked) {
           setBlockedTime(result.blockedUntil);
           setErrors({
-            general: 'Too many failed attempts. This account is locked for 24 hours.'
+            general: 'Too many failed login attempts. Your account has been temporarily locked for 24 hours. Please try again later or contact support.'
           });
         } else if (result?.remainingAttempts !== undefined) {
           setErrors({
-            general: `Invalid credentials. ${result.remainingAttempts} attempt${result.remainingAttempts !== 1 ? 's' : ''} remaining.`
+            general: `Invalid email or password. ${result.remainingAttempts} attempt${result.remainingAttempts !== 1 ? 's' : ''} remaining before account lockout.`
           });
         } else {
+          // Generic error without specifying which field is incorrect
           setErrors({
-            email: 'Invalid email or password',
-            password: 'Invalid email or password'
+            general: 'Invalid login credentials. Please check your email and password and try again.'
           });
         }
+        
+        // Clear specific field errors since it's a credential mismatch
+        setErrors(prev => ({
+          ...prev,
+          email: undefined,
+          password: undefined
+        }));
       }
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({
-        general: 'An error occurred. Please try again.'
+        general: 'Unable to process your request at this time. Please check your internet connection and try again. If the problem persists, contact support.'
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearFieldError = (field: 'email' | 'password') => {
+    setErrors(prev => ({
+      ...prev,
+      [field]: undefined,
+      // Clear general error if it exists and we're clearing the field that was the source
+      general: prev.general && prev.field === field ? undefined : prev.general,
+      field: prev.field === field ? null : prev.field
+    }));
   };
 
   return (
@@ -284,7 +322,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {errors.general && (
-              <div className="general-error">
+              <div className={`general-error ${blockedTime ? 'locked' : ''}`}>
                 {blockedTime && <Clock size={16} />}
                 <span>{errors.general}</span>
               </div>
@@ -298,17 +336,22 @@ const LoginPage: React.FC = () => {
                   <input
                     type="email"
                     id="email"
-                    placeholder="enter email address"
+                    placeholder="name@example.com"
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (errors.email) setErrors({ ...errors, email: undefined });
-                      if (errors.general) setErrors({ ...errors, general: undefined });
+                      clearFieldError('email');
                     }}
                     disabled={isLoading || !!blockedTime}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "email-error" : undefined}
                   />
                 </div>
-                {errors.email && <span className="error-message">{errors.email}</span>}
+                {errors.email && (
+                  <span id="email-error" className="error-message">
+                    {errors.email}
+                  </span>
+                )}
               </div>
 
               <div className="form-group">
@@ -318,14 +361,15 @@ const LoginPage: React.FC = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     id="password"
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
-                      if (errors.password) setErrors({ ...errors, password: undefined });
-                      if (errors.general) setErrors({ ...errors, general: undefined });
+                      clearFieldError('password');
                     }}
                     disabled={isLoading || !!blockedTime}
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                   />
                   <button
                     type="button"
@@ -333,11 +377,16 @@ const LoginPage: React.FC = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                     disabled={!!blockedTime}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                {errors.password && <span className="error-message">{errors.password}</span>}
+                {errors.password && (
+                  <span id="password-error" className="error-message">
+                    {errors.password}
+                  </span>
+                )}
               </div>
 
               <div className="form-options">
@@ -359,21 +408,22 @@ const LoginPage: React.FC = () => {
                 type="submit"
                 className="auth-submit-btn"
                 disabled={isLoading || !!blockedTime}
+                aria-busy={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <span className="spinner"></span>
+                    <span className="spinner" aria-hidden="true"></span>
                     Signing in...
                   </>
                 ) : blockedTime ? (
                   <>
-                    <Clock size={18} />
+                    <Clock size={18} aria-hidden="true" />
                     Locked for {countdown}
                   </>
                 ) : (
                   <>
                     Sign In
-                    <ArrowRight size={18} />
+                    <ArrowRight size={18} aria-hidden="true" />
                   </>
                 )}
               </button>
@@ -384,8 +434,12 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="social-auth">
-              <button className="social-btn google" disabled={isLoading || !!blockedTime}>
-                <svg viewBox="0 0 24 24" width="20" height="20">
+              <button 
+                className="social-btn google" 
+                disabled={isLoading || !!blockedTime}
+                aria-label="Sign in with Google"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
@@ -393,8 +447,12 @@ const LoginPage: React.FC = () => {
                 </svg>
                 Google
               </button>
-              <button className="social-btn apple" disabled={isLoading || !!blockedTime}>
-                <svg viewBox="0 0 24 24" width="20" height="20">
+              <button 
+                className="social-btn apple" 
+                disabled={isLoading || !!blockedTime}
+                aria-label="Sign in with Apple"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.69 3.56-1.702z" />
                 </svg>
                 Apple
