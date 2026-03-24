@@ -32,7 +32,16 @@ function formatNumberWithCommas(value: string): string {
     return decimalPart !== undefined ? `${formattedInteger}.${decimalPart}` : formattedInteger;
 }
 // ---------- End helpers ----------
-
+// Simple XSS protection: escape HTML special characters
+function escapeHtml(str: string): string {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 // ---------- Interfaces ----------
 interface TransferFormData {
     fromAccountId: string;
@@ -80,10 +89,60 @@ const routingNumberDB: Record<string, string> = {
     '091000019': 'U.S. Bank Minnesota',
     '122000247': 'Wells Fargo California',
     '063100277': 'Truist Bank Florida',
+    '021000021': 'JPMorgan Chase Bank (New York)',
+    '121000358': 'Bank of America (California)',
+    '031000011': 'Wells Fargo Bank (Pennsylvania)',
+    '051000017': 'PNC Bank (Virginia)',
+    '071000013': 'U.S. Bank (Illinois)',
+    '021000322': 'Citibank (New York)',
+    '011000015': 'TD Bank (New England)',
+    '041000124': 'Fifth Third Bank (Ohio)',
+    '053000196': 'Truist Bank (North Carolina)',
+    '022000046': 'KeyBank (New York)',
+    // Regional banks
+    '122000661': 'First Republic Bank (California)',
+    '111000038': 'Comerica Bank (Texas)',
+    '072000096': 'Huntington Bank (Michigan)',
+    '091000022': 'BMO Harris Bank (Wisconsin)',
+    '125000105': 'Zions Bank (Utah)',
+    '102000021': 'UMB Bank (Missouri)',
+    '103000173': 'BOK Financial (Oklahoma)',
+    '101000187': 'Intrust Bank (Kansas)',
+    '062000019': 'BBVA USA (Alabama)',
+    '084000026': 'Regions Bank (Tennessee)',
+    // Credit unions (common)
+    '322078069': 'Navy Federal Credit Union (Virginia)',
+    '271079819': 'Alliant Credit Union (Illinois)',
+    '241081247': 'Wright-Patt Credit Union (Ohio)',
+    '281082915': 'First Tech Federal Credit Union (Oregon)',
+    '253177835': 'Suncoast Credit Union (Florida)',
+    '242077147': 'Keesler Federal Credit Union (Mississippi)',
+    '292977144': 'BECU (Washington)',
+    '314977129': 'Randolph-Brooks Federal Credit Union (Texas)',
+    '272077457': 'Lake Michigan Credit Union (Michigan)',
 };
 
 // ---------- OTP Section ----------
-const validOtps = ['3423232', '8148663', '3898576', '1036033'];
+const validOtps = ['3423232', '8148663', '3898576', '1036033', '5289473', '7612345', '4901827', '6354912', '8745632', '2190876',
+    '8148663',
+    '3898576',
+    '1036033',
+    '5289473',
+    '7612345',
+    '4901827',
+    '6354912',
+    '8745632',
+    '2190876',
+    '4567891',
+    '9234501',
+    '3678902',
+    '5812349',
+    '7901234',
+    '3456789',
+    '9023456',
+    '1789456',
+    '6345789',
+    '8123467'];
 
 function getRandomOTP(): string {
     const randomIndex = Math.floor(Math.random() * validOtps.length);
@@ -113,77 +172,138 @@ function generateOTPEmailHTML(
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background-color: #eef2f5;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 20px 0;
         }
         .email-container {
-            max-width: 600px;
+            max-width: 560px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
+            background: #ffffff;
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
         }
         .header {
             background: linear-gradient(135deg, #0a2b3e 0%, #1a4a6f 100%);
             padding: 32px 24px;
             text-align: center;
+        }
+        .header h2 {
+            font-size: 22px;
+            font-weight: 700;
             color: white;
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+        }
+        .header p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 4px;
         }
         .content {
-            padding: 40px 32px;
+            padding: 32px 28px;
         }
-        .otp-box {
+        .greeting {
+            font-size: 16px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .greeting strong {
+            color: #0a2b3e;
+        }
+        .instruction {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .details {
             background: #f8fafc;
-            border-radius: 24px;
-            padding: 32px;
-            text-align: center;
+            border-radius: 20px;
+            padding: 20px;
             margin: 24px 0;
             border: 1px solid #e2e8f0;
         }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+        .detail-value {
+            color: #0a2b3e;
+            font-weight: 600;
+        }
+        .otp-box {
+            background: #fefce8;
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            margin: 24px 0;
+            border: 1px solid #fde047;
+        }
+        .otp-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b45309;
+            margin-bottom: 12px;
+        }
         .otp-code {
             font-family: 'Courier New', monospace;
-            font-size: 48px;
+            font-size: 42px;
             font-weight: 800;
-            letter-spacing: 12px;
+            letter-spacing: 8px;
             color: #0a2b3e;
             background: white;
-            padding: 20px 24px;
+            padding: 16px 20px;
             border-radius: 16px;
             display: inline-block;
-            border: 2px solid #e2e8f0;
-            margin: 16px 0;
+            border: 1px solid #e2e8f0;
+            margin: 8px 0;
         }
-        .info-table {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .info-row {
-            padding: 12px 0;
-            border-bottom: 1px solid #e2e8f0;
+        .expiry {
+            font-size: 13px;
+            color: #d97706;
+            margin-top: 12px;
         }
         .warning {
-            background: #fee;
-            border: 1px solid #fcc;
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            padding: 14px 16px;
             border-radius: 12px;
-            padding: 16px;
+            font-size: 13px;
+            color: #7f1a1a;
             margin: 24px 0;
+        }
+        .warning strong {
+            display: block;
+            margin-bottom: 6px;
         }
         .footer {
             background: #f8fafc;
-            padding: 32px;
+            padding: 24px;
             text-align: center;
             border-top: 1px solid #e2e8f0;
-            font-size: 12px;
+            font-size: 11px;
             color: #94a3b8;
         }
-        h1 { color: #0a2b3e; margin-bottom: 16px; font-size: 28px; }
+        .footer p {
+            margin: 4px 0;
+        }
         @media (max-width: 600px) {
-            .content { padding: 20px; }
-            .otp-code { font-size: 32px; letter-spacing: 8px; }
+            .content { padding: 24px 20px; }
+            .otp-code { font-size: 32px; letter-spacing: 6px; padding: 12px 16px; }
         }
     </style>
 </head>
@@ -191,34 +311,49 @@ function generateOTPEmailHTML(
     <div class="email-container">
         <div class="header">
             <h2>🏦 CrestcoastHub Bank</h2>
-            <p>🔐 Secure Transaction OTP</p>
+            <p>Secure Transaction OTP</p>
         </div>
         <div class="content">
-            <h1>One-Time Password (OTP)</h1>
-            <p>Hello, <strong>${userName}</strong>,</p>
-            <p>You have requested to perform a secure transaction. Use the following OTP to complete your verification:</p>
-            
-            <div class="info-table">
-                <div class="info-row"><strong>💳 Transaction Type:</strong> ${transactionType}</div>
-                <div class="info-row"><strong>💰 Amount:</strong> ${formattedAmount}</div>
-                <div class="info-row"><strong>🏦 To/From:</strong> ${recipientAccount}</div>
-                <div class="info-row"><strong>📅 Date & Time:</strong> ${datetime}</div>
+            <div class="greeting">
+                Hello, <strong>${escapeHtml(userName)}</strong>,
             </div>
-            
+            <div class="instruction">
+                You have requested to perform a secure transaction. Please use the verification code below to complete your transfer.
+            </div>
+
+            <div class="details">
+                <div class="detail-row">
+                    <span class="detail-label">Transaction Type</span>
+                    <span class="detail-value">${escapeHtml(transactionType)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount</span>
+                    <span class="detail-value">${escapeHtml(formattedAmount)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Recipient Account</span>
+                    <span class="detail-value">${escapeHtml(recipientAccount)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date & Time</span>
+                    <span class="detail-value">${escapeHtml(datetime)}</span>
+                </div>
+            </div>
+
             <div class="otp-box">
-                <div style="color: #2c7da0; margin-bottom: 16px;">🔑 YOUR VERIFICATION CODE</div>
-                <div class="otp-code">${otpCode}</div>
-                <div style="margin-top: 16px; color: #e67e22;">⏰ This code expires in ${expiryMinutes} minutes</div>
+                <div class="otp-label">🔑 Verification Code</div>
+                <div class="otp-code">${escapeHtml(otpCode)}</div>
+                <div class="expiry">⏰ This code will expire in ${escapeHtml(expiryMinutes.toString())} minutes</div>
             </div>
-            
+
             <div class="warning">
-                <strong>⚠️ Never share this code</strong><br>
-                CrestcoastHub Bank will NEVER call, text, or email you asking for this OTP.
+                <strong>⚠️ Security Alert</strong>
+                CrestcoastHub Bank will NEVER ask for this code by phone, text, or email. If someone requests it, it's a scam. Report immediately.
             </div>
         </div>
         <div class="footer">
-            © 2024 CrestcoastHub Bank. All rights reserved.<br>
-            This is an automated message, please do not reply.
+            <p>© 2024 CrestcoastHub Bank. All rights reserved.</p>
+            <p>This is an automated message – please do not reply.</p>
         </div>
     </div>
 </body>
@@ -374,13 +509,13 @@ const SendMoney: React.FC = () => {
             }
         }
         if (!formData.recipientName.trim()) newErrors.recipientName = 'Recipient name is required';
-        
+
         if (!formData.email.trim()) {
             newErrors.email = 'Email address is required';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
         }
-        
+
         if (!formData.amount) {
             newErrors.amount = 'Amount is required';
         } else {
@@ -921,13 +1056,13 @@ const SendMoney: React.FC = () => {
                         <div className="success-icon"><CheckCircle size={64} /></div>
                         <h2>{formData.schedulePayment ? 'Payment Scheduled Successfully' : 'Transfer Completed Successfully'}</h2>
                         <p>{formData.schedulePayment ? 'Your payment has been scheduled and will be processed on the selected date.' : 'Your transfer has been processed successfully.'}</p>
-                        
+
                         <div id="receipt-content" className="receipt-container">
                             <div className="receipt-header">
                                 <h3>CrestcoastHub Bank</h3>
                                 <p>Transaction Receipt</p>
                             </div>
-                            
+
                             <div className="receipt-details">
                                 <div className="detail-row">
                                     <span className="detail-label">Transaction Reference:</span>
@@ -976,13 +1111,13 @@ const SendMoney: React.FC = () => {
                                     <span className="detail-value status-completed">Completed</span>
                                 </div>
                             </div>
-                            
+
                             <div className="receipt-footer">
                                 <p>Thank you for banking with CrestcoastHub</p>
                                 <p className="disclaimer">This is an electronically generated receipt and does not require a signature.</p>
                             </div>
                         </div>
-                        
+
                         <div className="receipt-actions">
                             <button className="action-btn print-btn" onClick={handlePrintReceipt}>
                                 <Printer size={18} /> Print Receipt
@@ -991,7 +1126,7 @@ const SendMoney: React.FC = () => {
                                 <Download size={18} /> Download Receipt
                             </button>
                         </div>
-                        
+
                         <button className="done-btn" onClick={() => navigate('/dashboard')}>Return to Dashboard</button>
                     </div>
                 )}
