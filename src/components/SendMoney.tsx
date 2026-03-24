@@ -352,7 +352,7 @@ function generateOTPEmailHTML(
             </div>
         </div>
         <div class="footer">
-            <p>© 2024 CrestcoastHub Bank. All rights reserved.</p>
+            <p>© 2026 CrestcoastHub Bank. All rights reserved.</p>
             <p>This is an automated message – please do not reply.</p>
         </div>
     </div>
