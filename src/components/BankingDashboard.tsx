@@ -354,8 +354,8 @@ const BankingDashboard: React.FC = () => {
                                 <User size={24} />
                             </div>
                             <div className="user-details">
-                                <span className="user-fullname">Marc Goldberg </span>
-                                <span className="user-email">hovacation45@gmail.com</span>
+                                <span className="user-fullname">Chris Robinson </span>
+                                <span className="user-email">chrisrobinson4299@gmail.com</span>
                             </div>
                         </div>
 
