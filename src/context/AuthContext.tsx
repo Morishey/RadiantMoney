@@ -266,7 +266,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       
       activityCheckIntervalRef.current = setInterval(() => {
         checkSessionExpiry();
-      }, 60000);
+      }, 800000); // Check every ~13 minutes
       
       return () => {
         activityEvents.forEach(event => {
@@ -330,7 +330,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           logout();
         }
       }
-    }, 60000);
+    }, 800000); // Check every ~13 minutes
     return () => clearInterval(timer);
   }, [user, logout]);
 
