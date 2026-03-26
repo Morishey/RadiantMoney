@@ -46,10 +46,15 @@ function escapeHtml(str: string): string {
 // ---------- Interfaces ----------
 interface TransferFormData {
     fromAccountId: string;
-    recipientAccount: string;
-    sortCode: string;        // renamed from routingNumber
-    bankName: string;
-    recipientName: string;
+    transferType: 'external' | 'internal';
+    // External fields
+    recipientAccount?: string;
+    sortCode?: string;
+    bankName?: string;
+    recipientName?: string;
+    // Internal fields
+    toAccountId?: string;
+    // Common
     email: string;
     amount: string;
     description: string;
@@ -64,9 +69,11 @@ interface SecurityData {
 
 interface FormErrors {
     fromAccountId?: string;
+    transferType?: string;
     recipientAccount?: string;
-    sortCode?: string;       // renamed
+    sortCode?: string;
     recipientName?: string;
+    toAccountId?: string;
     email?: string;
     amount?: string;
     description?: string;
@@ -97,7 +104,7 @@ const sortCodeDB: Record<string, string> = {
     '77-00-00': 'TSB Bank',
     '08-00-00': 'Co-operative Bank',
     '23-00-00': 'Metro Bank',
-    '04-00-00': 'Monzo',            // Starling also uses 04-00-00, but only one will show
+    '04-00-00': 'Monzo',
     '82-00-00': 'Virgin Money',
     '05-00-00': 'Yorkshire Bank',
     '93-00-00': 'AIB (NI)',
@@ -125,7 +132,7 @@ function formatSortCode(value: string): string {
     return parts.join('-');
 }
 
-// ---------- OTP Section (unchanged) ----------
+// ---------- OTP Section ----------
 const validOtps = ['3423232', '8148663', '3898576', '1036033', '5289473', '7612345', '4901827', '6354912', '8745632', '2190876',
     '8148663',
     '3898576',
@@ -157,7 +164,7 @@ function generateOTPEmailHTML(
     transactionType: string,
     currency: string,
     amount: string,
-    recipientAccount: string,
+    recipientInfo: string,
     otpCode: string,
     expiryMinutes: number,
     datetime: string
@@ -333,8 +340,8 @@ function generateOTPEmailHTML(
                     <span class="detail-value">${escapeHtml(formattedAmount)}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Recipient Account</span>
-                    <span class="detail-value">${escapeHtml(recipientAccount)}</span>
+                    <span class="detail-label">Recipient</span>
+                    <span class="detail-value">${escapeHtml(recipientInfo)}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Date & Time</span>
@@ -388,16 +395,18 @@ async function sendOTPEmail(emailData: {
 const SendMoney: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { accounts, deductFromAccount } = useAccounts();
+    const { accounts, deductFromAccount, updateAccountBalance } = useAccounts();
     const { addTransaction } = useTransactions();
 
     const [step, setStep] = useState<'form' | 'security' | 'otp' | 'success'>('form');
     const [formData, setFormData] = useState<TransferFormData>({
         fromAccountId: accounts.length > 0 ? accounts[0].id : '',
+        transferType: 'external',
         recipientAccount: '',
         sortCode: '',
         bankName: '',
         recipientName: '',
+        toAccountId: accounts.length > 1 ? accounts[1].id : '',
         email: user?.email || '',
         amount: '',
         description: '',
@@ -435,16 +444,13 @@ const SendMoney: React.FC = () => {
             const rawNumber = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
             setFormData(prev => ({ ...prev, amount: rawNumber }));
         } else if (name === 'sortCode') {
-            // Auto‑format sort code as user types
             const formatted = formatSortCode(value);
             setFormData(prev => ({ ...prev, sortCode: formatted, bankName: '' }));
-            // Clear any previous timeout
             if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
-            // Look up bank name after a delay
             const timeout = window.setTimeout(() => {
                 const cleaned = formatted.replace(/\D/g, '');
                 if (cleaned.length === 6) {
-                    const formattedKey = `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(4, 6)}`;
+                    const formattedKey = `${cleaned.slice(0,2)}-${cleaned.slice(2,4)}-${cleaned.slice(4,6)}`;
                     const bank = sortCodeDB[formattedKey] || 'Unknown Bank';
                     setFormData(prev => ({ ...prev, bankName: bank }));
                 } else {
@@ -452,6 +458,8 @@ const SendMoney: React.FC = () => {
                 }
             }, 500);
             setBankLookupTimeout(timeout);
+        } else if (name === 'transferType') {
+            setFormData(prev => ({ ...prev, transferType: value as 'external' | 'internal' }));
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -499,27 +507,33 @@ const SendMoney: React.FC = () => {
         const newErrors: FormErrors = {};
         if (!formData.fromAccountId) newErrors.fromAccountId = 'Please select an account';
 
-        // UK account number: 6–8 digits
-        if (!formData.recipientAccount.trim()) {
-            newErrors.recipientAccount = 'Recipient account number is required';
+        if (formData.transferType === 'external') {
+            // External validation
+            if (!formData.recipientAccount?.trim()) {
+                newErrors.recipientAccount = 'Recipient account number is required';
+            } else {
+                const cleanedAccount = formData.recipientAccount.replace(/\s/g, '');
+                if (!/^\d{6,8}$/.test(cleanedAccount)) {
+                    newErrors.recipientAccount = 'Account number must be 6 to 8 digits';
+                }
+            }
+            if (!formData.sortCode?.trim()) {
+                newErrors.sortCode = 'Sort code is required';
+            } else {
+                const cleaned = formData.sortCode.replace(/\D/g, '');
+                if (cleaned.length !== 6) {
+                    newErrors.sortCode = 'Sort code must be 6 digits';
+                }
+            }
+            if (!formData.recipientName?.trim()) newErrors.recipientName = 'Recipient name is required';
         } else {
-            const cleanedAccount = formData.recipientAccount.replace(/\s/g, '');
-            if (!/^\d{6,8}$/.test(cleanedAccount)) {
-                newErrors.recipientAccount = 'Account number must be 6 to 8 digits';
+            // Internal validation
+            if (!formData.toAccountId) {
+                newErrors.toAccountId = 'Please select a destination account';
+            } else if (formData.toAccountId === formData.fromAccountId) {
+                newErrors.toAccountId = 'Cannot transfer to the same account';
             }
         }
-
-        // Sort code: 6 digits
-        if (!formData.sortCode.trim()) {
-            newErrors.sortCode = 'Sort code is required';
-        } else {
-            const cleaned = formData.sortCode.replace(/\D/g, '');
-            if (cleaned.length !== 6) {
-                newErrors.sortCode = 'Sort code must be 6 digits';
-            }
-        }
-
-        if (!formData.recipientName.trim()) newErrors.recipientName = 'Recipient name is required';
 
         if (!formData.email.trim()) {
             newErrors.email = 'Email address is required';
@@ -603,12 +617,21 @@ const SendMoney: React.FC = () => {
         const newOtp = getRandomOTP();
         setGeneratedOtp(newOtp);
 
+        // Build recipient info for email
+        let recipientInfo = '';
+        if (formData.transferType === 'external') {
+            recipientInfo = `${formData.recipientName} (${formData.recipientAccount})`;
+        } else {
+            const toAccount = accounts.find(acc => acc.id === formData.toAccountId);
+            recipientInfo = `${toAccount?.name} (${toAccount?.number})`;
+        }
+
         const emailHtml = generateOTPEmailHTML(
-            formData.recipientName,
-            'Transfer',
+            formData.recipientName || (accounts.find(acc => acc.id === formData.toAccountId)?.name || 'my own account'),
+            formData.transferType === 'external' ? 'External Transfer' : 'Internal Transfer',
             '£',
             formData.amount,
-            formData.recipientAccount,
+            recipientInfo,
             newOtp,
             10,
             getFormattedDateTime()
@@ -616,16 +639,21 @@ const SendMoney: React.FC = () => {
 
         const emailSent = await sendOTPEmail({
             to: formData.email,
-            subject: `RadiantMoney Bank - OTP for £${formData.amount} transfer`,
+            subject: `RadiantMoney Bank - OTP for £${formData.amount} ${formData.transferType === 'external' ? 'transfer' : 'internal transfer'}`,
             html: emailHtml,
             otpCode: newOtp,
             amount: formData.amount,
-            recipient: formData.recipientName,
+            recipient: formData.transferType === 'external' ? formData.recipientName! : 'my own account',
         });
 
         if (emailSent) {
             setNotification({ type: 'success', message: `Verification code sent to ${formData.email}` });
-            setStep('security');
+            // For internal transfers, go directly to OTP; otherwise go to security questions
+            if (formData.transferType === 'internal') {
+                setStep('otp');
+            } else {
+                setStep('security');
+            }
         } else {
             setErrors({ ...errors, general: 'Failed to send verification code. Please try again.' });
         }
@@ -659,11 +687,20 @@ const SendMoney: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 4000));
 
         const amountNum = Number(formData.amount);
+        // Deduct from source
         const success = deductFromAccount(formData.fromAccountId, amountNum);
         if (!success) {
             setErrors({ ...errors, otp: 'Insufficient balance or account not found' });
             setIsLoading(false);
             return;
+        }
+
+        // If internal transfer, add to destination
+        if (formData.transferType === 'internal' && formData.toAccountId) {
+            const toAccount = accounts.find(acc => acc.id === formData.toAccountId);
+            if (toAccount) {
+                updateAccountBalance(formData.toAccountId, toAccount.balance + amountNum);
+            }
         }
 
         // Generate transaction reference
@@ -679,13 +716,15 @@ const SendMoney: React.FC = () => {
         });
         const newTransaction = {
             id: Date.now().toString(),
-            name: `Transfer to ${formData.recipientName}`,
+            name: formData.transferType === 'external' 
+                ? `Transfer to ${formData.recipientName}` 
+                : `Transfer to ${accounts.find(acc => acc.id === formData.toAccountId)?.name}`,
             date: formattedDate,
             amount: amountNum,
             type: 'debit' as const,
             status: 'completed' as const,
-            category: 'Transfer',
-            iconName: 'send',
+            category: formData.transferType === 'external' ? 'Transfer' : 'Internal Transfer',
+            iconName: formData.transferType === 'external' ? 'send' : 'repeat',
             reference: ref,
         };
         addTransaction(newTransaction);
@@ -699,12 +738,20 @@ const SendMoney: React.FC = () => {
         const newOtp = getRandomOTP();
         setGeneratedOtp(newOtp);
 
+        let recipientInfo = '';
+        if (formData.transferType === 'external') {
+            recipientInfo = `${formData.recipientName} (${formData.recipientAccount})`;
+        } else {
+            const toAccount = accounts.find(acc => acc.id === formData.toAccountId);
+            recipientInfo = `${toAccount?.name} (${toAccount?.number})`;
+        }
+
         const emailHtml = generateOTPEmailHTML(
-            formData.recipientName,
-            'Transfer',
+            formData.recipientName || (accounts.find(acc => acc.id === formData.toAccountId)?.name || 'my own account'),
+            formData.transferType === 'external' ? 'External Transfer' : 'Internal Transfer',
             '£',
             formData.amount,
-            formData.recipientAccount,
+            recipientInfo,
             newOtp,
             10,
             getFormattedDateTime()
@@ -716,7 +763,7 @@ const SendMoney: React.FC = () => {
             html: emailHtml,
             otpCode: newOtp,
             amount: formData.amount,
-            recipient: formData.recipientName,
+            recipient: formData.transferType === 'external' ? formData.recipientName! : 'my own account',
         });
 
         setNotification({ type: 'success', message: `New verification code sent to ${formData.email}` });
@@ -801,6 +848,35 @@ const SendMoney: React.FC = () => {
             <div className="send-money-container">
                 {step === 'form' && (
                     <form onSubmit={handleSendOtp} className="send-money-form">
+                        {/* Transfer Type Toggle */}
+                        <div className="form-group">
+                            <label>Transfer Type</label>
+                            <div className="transfer-type-group">
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="transferType"
+                                        value="external"
+                                        checked={formData.transferType === 'external'}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                    />
+                                    <span>External Transfer</span>
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="transferType"
+                                        value="internal"
+                                        checked={formData.transferType === 'internal'}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                    />
+                                    <span>Transfer between my accounts</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="form-group">
                             <label>From Account</label>
                             <select
@@ -819,50 +895,72 @@ const SendMoney: React.FC = () => {
                             {errors.fromAccountId && <span className="error-message"><AlertCircle size={14} /> {errors.fromAccountId}</span>}
                         </div>
 
-                        <div className="form-group">
-                            <label>Recipient Account Number</label>
-                            <input
-                                type="text"
-                                name="recipientAccount"
-                                value={formData.recipientAccount}
-                                onChange={handleChange}
-                                placeholder="6 to 8 digits"
-                                maxLength={8}
-                                className={errors.recipientAccount ? 'error' : ''}
-                                disabled={isLoading}
-                            />
-                            {errors.recipientAccount && <span className="error-message"><AlertCircle size={14} /> {errors.recipientAccount}</span>}
-                        </div>
+                        {formData.transferType === 'external' ? (
+                            <>
+                                <div className="form-group">
+                                    <label>Recipient Account Number</label>
+                                    <input
+                                        type="text"
+                                        name="recipientAccount"
+                                        value={formData.recipientAccount}
+                                        onChange={handleChange}
+                                        placeholder="6 to 8 digits"
+                                        maxLength={8}
+                                        className={errors.recipientAccount ? 'error' : ''}
+                                        disabled={isLoading}
+                                    />
+                                    {errors.recipientAccount && <span className="error-message"><AlertCircle size={14} /> {errors.recipientAccount}</span>}
+                                </div>
 
-                        <div className="form-group">
-                            <label>Sort Code</label>
-                            <input
-                                type="text"
-                                name="sortCode"
-                                value={formData.sortCode}
-                                onChange={handleChange}
-                                placeholder="XX-XX-XX (e.g., 00-00-00)"
-                                maxLength={8}
-                                className={errors.sortCode ? 'error' : ''}
-                                disabled={isLoading}
-                            />
-                            {errors.sortCode && <span className="error-message"><AlertCircle size={14} /> {errors.sortCode}</span>}
-                            {formData.bankName && <span className="bank-name-hint">{formData.bankName}</span>}
-                        </div>
+                                <div className="form-group">
+                                    <label>Sort Code</label>
+                                    <input
+                                        type="text"
+                                        name="sortCode"
+                                        value={formData.sortCode}
+                                        onChange={handleChange}
+                                        placeholder="XX-XX-XX (e.g., 20-00-00)"
+                                        maxLength={8}
+                                        className={errors.sortCode ? 'error' : ''}
+                                        disabled={isLoading}
+                                    />
+                                    {errors.sortCode && <span className="error-message"><AlertCircle size={14} /> {errors.sortCode}</span>}
+                                    {formData.bankName && <span className="bank-name-hint">{formData.bankName}</span>}
+                                </div>
 
-                        <div className="form-group">
-                            <label>Recipient Name</label>
-                            <input
-                                type="text"
-                                name="recipientName"
-                                value={formData.recipientName}
-                                onChange={handleChange}
-                                placeholder="Enter full name"
-                                className={errors.recipientName ? 'error' : ''}
-                                disabled={isLoading}
-                            />
-                            {errors.recipientName && <span className="error-message"><AlertCircle size={14} /> {errors.recipientName}</span>}
-                        </div>
+                                <div className="form-group">
+                                    <label>Recipient Name</label>
+                                    <input
+                                        type="text"
+                                        name="recipientName"
+                                        value={formData.recipientName}
+                                        onChange={handleChange}
+                                        placeholder="Enter full name"
+                                        className={errors.recipientName ? 'error' : ''}
+                                        disabled={isLoading}
+                                    />
+                                    {errors.recipientName && <span className="error-message"><AlertCircle size={14} /> {errors.recipientName}</span>}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="form-group">
+                                <label>To Account</label>
+                                <select
+                                    name="toAccountId"
+                                    value={formData.toAccountId}
+                                    onChange={handleChange}
+                                    className={errors.toAccountId ? 'error' : ''}
+                                    disabled={isLoading}
+                                >
+                                    {accounts.filter(acc => acc.id !== formData.fromAccountId).map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name} (••••{acc.number?.slice(-4)}) - £{acc.balance.toLocaleString()}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.toAccountId && <span className="error-message"><AlertCircle size={14} /> {errors.toAccountId}</span>}
+                            </div>
+                        )}
 
                         <div className="form-group">
                             <label>Email for Verification</label>
@@ -1043,7 +1141,15 @@ const SendMoney: React.FC = () => {
                             <div className="transaction-summary">
                                 <h3>Transaction Summary</h3>
                                 <div className="summary-item"><span>From:</span><span>{selectedAccount?.name}</span></div>
-                                <div className="summary-item"><span>To:</span><span>{formData.recipientName}</span></div>
+                                {formData.transferType === 'external' ? (
+                                    <>
+                                        <div className="summary-item"><span>To:</span><span>{formData.recipientName}</span></div>
+                                        <div className="summary-item"><span>Account:</span><span>{formData.recipientAccount}</span></div>
+                                        <div className="summary-item"><span>Sort Code:</span><span>{formData.sortCode}</span></div>
+                                    </>
+                                ) : (
+                                    <div className="summary-item"><span>To:</span><span>{accounts.find(acc => acc.id === formData.toAccountId)?.name}</span></div>
+                                )}
                                 <div className="summary-item"><span>Amount:</span><span className="amount">{formatCurrency(formData.amount)}</span></div>
                                 <div className="summary-item"><span>Description:</span><span>{formData.description}</span></div>
                                 {formData.schedulePayment && (
@@ -1087,18 +1193,27 @@ const SendMoney: React.FC = () => {
                                     <span className="detail-label">From Account:</span>
                                     <span className="detail-value">{selectedAccount?.name} (••••{selectedAccount?.number?.slice(-4)})</span>
                                 </div>
-                                <div className="detail-row">
-                                    <span className="detail-label">Recipient:</span>
-                                    <span className="detail-value">{formData.recipientName}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="detail-label">Account Number:</span>
-                                    <span className="detail-value">{formData.recipientAccount}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="detail-label">Sort Code:</span>
-                                    <span className="detail-value">{formData.sortCode} ({formData.bankName || 'N/A'})</span>
-                                </div>
+                                {formData.transferType === 'external' ? (
+                                    <>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Recipient:</span>
+                                            <span className="detail-value">{formData.recipientName}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Account Number:</span>
+                                            <span className="detail-value">{formData.recipientAccount}</span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="detail-label">Sort Code:</span>
+                                            <span className="detail-value">{formData.sortCode} ({formData.bankName || 'N/A'})</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="detail-row">
+                                        <span className="detail-label">To Account:</span>
+                                        <span className="detail-value">{accounts.find(acc => acc.id === formData.toAccountId)?.name} (••••{accounts.find(acc => acc.id === formData.toAccountId)?.number?.slice(-4)})</span>
+                                    </div>
+                                )}
                                 <div className="detail-row">
                                     <span className="detail-label">Amount:</span>
                                     <span className="detail-value amount-highlight">{formatCurrency(formData.amount)}</span>
