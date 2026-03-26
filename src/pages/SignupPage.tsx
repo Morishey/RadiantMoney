@@ -96,10 +96,10 @@ const SignupPage: React.FC = () => {
           <div className="auth-brand-content">
             <Link to="/" className="auth-logo">
               <Building2 className="logo-icon" size={40} />
-              <span className="logo-text">CrestBank</span>
+              <span className="logo-text">RadiantMoney</span>
             </Link>
             
-            <h1>Join CrestBank</h1>
+            <h1>Join RadiantMoney</h1>
             <p className="auth-subtitle">Open your account in minutes and start banking securely.</p>
             
             <div className="benefits-list">

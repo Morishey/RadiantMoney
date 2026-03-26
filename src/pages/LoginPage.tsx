@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
   };
 
   const ADMIN_CREDENTIALS = {
-    email: 'admin@crestcoasthub.com',
+    email: 'admin@RadiantMoney.com',
     password: 'admin123'
   };
 
@@ -292,7 +292,7 @@ const LoginPage: React.FC = () => {
           <div className="auth-brand-content">
             <Link to="/" className="auth-logo">
               <Building2 className="logo-icon" size={40} />
-              <span className="logo-text">CrestcoastHub</span>
+              <span className="logo-text">RadiantMoney</span>
             </Link>
             <h1>Welcome Back!</h1>
             <p className="auth-subtitle">Access your secure banking dashboard and manage your finances with ease.</p>

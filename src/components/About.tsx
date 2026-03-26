@@ -44,7 +44,7 @@ const About: React.FC = () => {
       <div className="container">
         <div className="about-content">
           <div className="about-text">
-            <h2>About CrestCoastHub Savings Bank</h2>
+            <h2>About RadiantMoney Savings Bank</h2>
             <p>
               As a community bank, we are deeply involved with the specific needs of local people, 
               families, and businesses. For a long time now, we have provided banking services that 
@@ -67,7 +67,7 @@ const About: React.FC = () => {
           </div>
           
           <div className="values-section">
-            <h3>Why Partner with CrestCoastHub?</h3>
+            <h3>Why Partner with RadiantMoney?</h3>
             <div className="values-grid">
               {values.map((value, index) => (
                 <div key={index} className="value-card">

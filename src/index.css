@@ -1461,7 +1461,7 @@ body.modal-open {
 /* Auth Pages Styles */
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b2c2c 0%, #6b1f1f 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1479,7 +1479,6 @@ body.modal-open {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: slideUp 0.5s ease;
 }
-
 
 /* Brand Panel */
 .auth-brand-panel {
@@ -1848,7 +1847,7 @@ body.modal-open {
 .auth-submit-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary);
   color: white;
   border: none;
   border-radius: 12px;
@@ -1860,6 +1859,10 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.auth-submit-btn:hover {
+  background: var(--primary-dark);
 }
 
 .auth-submit-btn:hover:not(:disabled) {

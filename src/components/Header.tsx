@@ -46,7 +46,7 @@ const Header: React.FC = () => {
           <a href="/" className="logo">
             {/* FIXED: Using Building2 instead of Bank */}
             <Building2 className="logo-icon" />
-            <span>CrestCoastHub</span>
+            <span>RadiantMoney</span>
           </a>
 
           <button 

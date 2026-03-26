@@ -47,9 +47,9 @@ import {
     Eye,
     EyeOff,
     ShoppingBag,
-    AlertCircle,   // added for error messages
-    CheckCircle,   // added for success
-    Loader         // for loading spinner (already used in mobile)
+    AlertCircle,
+    CheckCircle,
+    Loader
 } from 'lucide-react';
 import './DesktopBankingDashboard.css';
 
@@ -190,21 +190,6 @@ const DesktopBankingDashboard: React.FC = () => {
         // Simulate invalid account (always show error)
         setRequestError('Account not found. Please check the number.');
         return;
-
-        // If we wanted to simulate success, we could add a condition:
-        // if (requestRecipient === '1234567890') { // some valid demo account
-        //   setIsRequestLoading(true);
-        //   setTimeout(() => {
-        //     setIsRequestLoading(false);
-        //     setRequestSuccess(true);
-        //     setTimeout(() => {
-        //       setIsRequestModalOpen(false);
-        //       setRequestSuccess(false);
-        //     }, 2000);
-        //   }, 2000);
-        // } else {
-        //   setRequestError('Account not found');
-        // }
     };
 
     return (
@@ -219,22 +204,22 @@ const DesktopBankingDashboard: React.FC = () => {
                 <div className="modal-overlay" onClick={() => setIsRequestModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-  <div className="modal-title">
-    <div className="bank-transfer-icon">
-      <Building size={16} className="bank-icon" />
-      <ArrowRightLeft size={14} className="arrow-icon" />
-      <Building size={16} className="bank-icon" />
-    </div>
-    <h2>Request Money</h2>
-  </div>
-  <button className="modal-close" onClick={() => setIsRequestModalOpen(false)}>
-    <X size={24} />
-  </button>
-</div>
+                            <div className="modal-title">
+                                <div className="bank-transfer-icon">
+                                    <Building size={16} className="bank-icon" />
+                                    <ArrowRightLeft size={14} className="arrow-icon" />
+                                    <Building size={16} className="bank-icon" />
+                                </div>
+                                <h2>Request Money</h2>
+                            </div>
+                            <button className="modal-close" onClick={() => setIsRequestModalOpen(false)}>
+                                <X size={24} />
+                            </button>
+                        </div>
 
                         <form onSubmit={handleRequestSubmit}>
                             <div className="form-group">
-                                <label htmlFor="requestRecipient">CrestcoastHub Account Number</label>
+                                <label htmlFor="requestRecipient">RadiantMoney Account Number</label>
                                 <input
                                     type="text"
                                     id="requestRecipient"
@@ -266,7 +251,7 @@ const DesktopBankingDashboard: React.FC = () => {
                                 >
                                     {accounts.map(acc => (
                                         <option key={acc.id} value={acc.id}>
-                                            {acc.name} (${acc.balance.toLocaleString()})
+                                            {acc.name} (£{acc.balance.toLocaleString()})
                                         </option>
                                     ))}
                                 </select>
@@ -296,7 +281,7 @@ const DesktopBankingDashboard: React.FC = () => {
                 <div className="sidebar-header">
                     <div className="logo">
                         <Building size={28} className="logo-icon" />
-                        <span className="logo-text">CrestcoastHub</span>
+                        <span className="logo-text">RadiantMoney</span>
                     </div>
                     <button
                         className="close-sidebar-btn"
@@ -413,7 +398,7 @@ const DesktopBankingDashboard: React.FC = () => {
                             </button>
                         </div>
                         <div className="balance-amount">
-                            {showBalance ? `$${totalBalance.toLocaleString()}` : '••••••'}
+                            {showBalance ? `£${totalBalance.toLocaleString()}` : '••••••'}
                         </div>
                         <div className="balance-trend">
                             <span className="trend positive">
@@ -430,7 +415,7 @@ const DesktopBankingDashboard: React.FC = () => {
                             <DollarSign size={18} className="card-icon income" />
                         </div>
                         <div className="balance-amount small">
-                            {showBalance ? `$${monthlyIncome.toLocaleString()}` : '••••••'}
+                            {showBalance ? `£${monthlyIncome.toLocaleString()}` : '••••••'}
                         </div>
                         <div className="balance-footer">
                             <span className="trend positive">
@@ -446,7 +431,7 @@ const DesktopBankingDashboard: React.FC = () => {
                             <ArrowDownRight size={18} className="card-icon expense" />
                         </div>
                         <div className="balance-amount small">
-                            {showBalance ? `$${monthlyExpenses.toLocaleString()}` : '••••••'}
+                            {showBalance ? `£${monthlyExpenses.toLocaleString()}` : '••••••'}
                         </div>
                         <div className="balance-footer">
                             <span className="trend negative">
@@ -532,7 +517,7 @@ const DesktopBankingDashboard: React.FC = () => {
                                         <div>
                                             <span className="balance-label">Balance</span>
                                             <span className="balance-value">
-                                                {showBalance ? `$${account.balance.toLocaleString()}` : '••••••'}
+                                                {showBalance ? `£${account.balance.toLocaleString()}` : '••••••'}
                                             </span>
                                         </div>
                                         <span className={`trend-badge ${account.trend >= 0 ? 'positive' : 'negative'}`}>
@@ -569,7 +554,7 @@ const DesktopBankingDashboard: React.FC = () => {
                                                 }}
                                             ></div>
                                         </div>
-                                        <div className="bar-value">${category.amount}</div>
+                                        <div className="bar-value">£{category.amount}</div>
                                     </div>
                                 ))}
                             </div>
@@ -617,7 +602,7 @@ const DesktopBankingDashboard: React.FC = () => {
                                             {transaction.status}
                                         </span>
                                         <span className={`transaction-amount ${transaction.type}`}>
-                                            {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                                            {transaction.type === 'credit' ? '+' : '-'}£{transaction.amount.toLocaleString()}
                                         </span>
                                     </div>
                                 ))}
@@ -643,7 +628,7 @@ const DesktopBankingDashboard: React.FC = () => {
                                     </div>
                                     <div className="investment-values">
                                         <span className="investment-value">
-                                            ${investment.value.toLocaleString()}
+                                            £{investment.value.toLocaleString()}
                                         </span>
                                         <span className={`investment-return ${investment.return >= 0 ? 'positive' : 'negative'}`}>
                                             {investment.return >= 0 ? '+' : ''}{investment.returnPercentage}%
@@ -685,7 +670,7 @@ const DesktopBankingDashboard: React.FC = () => {
                             <TrendingUp size={24} className="offer-icon" />
                             <div className="offer-content">
                                 <h4>Investment Bonus</h4>
-                                <p>Get $50 when you invest $1000 in any fund</p>
+                                <p>Get £50 when you invest £1000 in any fund</p>
                                 <button className="offer-cta">Start Investing</button>
                             </div>
                         </div>

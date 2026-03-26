@@ -30,7 +30,7 @@ const WhyChoose: React.FC = () => {
     <section className="why-choose">
       <div className="container">
         <div className="section-title">
-          <h2>Why Partner with CrestCoastHub?</h2>
+          <h2>Why Partner with RadiantMoney?</h2>
           <p>Our commitment goes beyond banking to creating lasting value</p>
         </div>
         

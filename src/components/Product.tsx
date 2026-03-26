@@ -8,7 +8,7 @@ const Products = () => {
       icon: <TrendingUp />,
       title: "Certificates of Deposit",
       subtitle: "You earn for the future; we invest in a brighter future.",
-      description: "Every cent you save earns interest for you and helps support a brighter future. CrestCoastHub is committed to financing sustainable businesses and clean energy projects.",
+      description: "Every cent you save earns interest for you and helps support a brighter future. RadiantMoney is committed to financing sustainable businesses and clean energy projects.",
       color: "blue"
     },
     {
@@ -29,7 +29,7 @@ const Products = () => {
       icon: <Globe />,
       title: "Retirement",
       subtitle: "Enjoy your next phase while phasing out carbon emissions",
-      description: "Wherever you see yourself in retirement, CrestCoastHub's options have you covered. With multiple IRA solutions to choose from, you can save for a future that works for everyone.",
+      description: "Wherever you see yourself in retirement, RadiantMoney's options have you covered. With multiple IRA solutions to choose from, you can save for a future that works for everyone.",
       color: "orange"
     },
     {

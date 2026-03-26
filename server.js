@@ -11,9 +11,11 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Configure Gmail SMTP
+// Configure Gmail SMTP with explicit host/port
 const transporter = nodemailer.createTransport({
-    service: 'gmail',  // Use service instead of host for easier configuration
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -24,6 +26,7 @@ const transporter = nodemailer.createTransport({
     connectionTimeout: 30000,
     greetingTimeout: 30000,
     socketTimeout: 30000,
+    debug: true, // helps see connection details
 });
 
 // Verify connection with retry logic
@@ -44,6 +47,7 @@ function verifyConnection() {
                 console.error('1. EMAIL_USER in .env is your full Gmail address');
                 console.error('2. EMAIL_PASS is your Gmail APP PASSWORD (not regular password)');
                 console.error('3. 2-Factor Authentication is enabled on your Gmail');
+                console.error('4. Network allows outbound SMTP on port 587');
             }
         } else {
             console.log('✅ Gmail SMTP connected successfully!');
@@ -70,7 +74,7 @@ app.post('/api/send-otp-email', async (req, res) => {
         }
 
         const mailOptions = {
-            from: `"CrestcoastHub Bank" <${process.env.EMAIL_USER}>`,
+            from: `"RadiantMoney" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             html,

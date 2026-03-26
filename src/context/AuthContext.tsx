@@ -42,7 +42,7 @@ interface AuthContextType {
 const USER_KEY = "user";
 const TOKEN_KEY = "token";
 const AUTH_KEY = "isAuthenticated";
-const GLOBAL_SESSION_KEY = "crest_global_session";
+const GLOBAL_SESSION_KEY = "radiantmoney_global_session";
 const DEVICE_KEY = "device_id";
 const LAST_ACTIVITY_KEY = "last_activity";
 const SESSION_TIMEOUT_KEY = "session_timeout";
@@ -351,7 +351,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   /* =========================
      LOGIN
-  ========================= */
+
+     ========================= */
 
   const login = (userData: User, newToken: string) => {
     console.log('Login called with:', userData, newToken);

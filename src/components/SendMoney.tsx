@@ -18,7 +18,7 @@ function addWorkingDays(startDate: Date, days: number): Date {
 }
 
 function formatDate(date: Date): string {
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-GB', {  // UK format
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -99,7 +99,6 @@ const routingNumberDB: Record<string, string> = {
     '041000124': 'Fifth Third',
     '053000196': 'Truist Bank',
     '022000046': 'KeyBank',
-    // Regional banks
     '122000661': 'First Republic Bank',
     '111000038': 'Comerica Bank',
     '072000096': 'Huntington Bank',
@@ -110,7 +109,6 @@ const routingNumberDB: Record<string, string> = {
     '101000187': 'Intrust Bank',
     '062000019': 'BBVA USA',
     '084000026': 'Regions Bank',
-    // Credit unions (common)
     '322078069': 'Navy Federal Credit Union',
     '271079819': 'Alliant Credit Union',
     '241081247': 'Wright-Patt Credit Union',
@@ -167,7 +165,7 @@ function generateOTPEmailHTML(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>OTP Verification - CrestcoastHub Bank</title>
+    <title>OTP Verification - RadiantMoney</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -310,7 +308,7 @@ function generateOTPEmailHTML(
 <body>
     <div class="email-container">
         <div class="header">
-            <h2>🏦 CrestcoastHub Bank</h2>
+            <h2>🏦 RadiantMoney Bank</h2>
             <p>Secure Transaction OTP</p>
         </div>
         <div class="content">
@@ -348,11 +346,11 @@ function generateOTPEmailHTML(
 
             <div class="warning">
                 <strong>⚠️ Security Alert</strong>
-                CrestcoastHub Bank will NEVER ask for this code by phone, text, or email. If someone requests it, it's a scam. Report immediately.
+                RadiantMoney Bank will NEVER ask for this code by phone, text, or email. If someone requests it, it's a scam. Report immediately.
             </div>
         </div>
         <div class="footer">
-            <p>© 2026 CrestcoastHub Bank. All rights reserved.</p>
+            <p>© 2026 RadiantMoney Bank. All rights reserved.</p>
             <p>This is an automated message – please do not reply.</p>
         </div>
     </div>
@@ -525,7 +523,7 @@ const SendMoney: React.FC = () => {
             } else {
                 const selectedAccount = accounts.find(acc => acc.id === formData.fromAccountId);
                 if (selectedAccount && amountNum > selectedAccount.balance) {
-                    newErrors.amount = `Insufficient balance. Available: $${selectedAccount.balance.toLocaleString()}`;
+                    newErrors.amount = `Insufficient balance. Available: £${selectedAccount.balance.toLocaleString()}`;
                 }
             }
         }
@@ -570,7 +568,7 @@ const SendMoney: React.FC = () => {
 
     const getFormattedDateTime = (): string => {
         const now = new Date();
-        return now.toLocaleString('en-US', {
+        return now.toLocaleString('en-GB', {  // UK format
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -595,7 +593,7 @@ const SendMoney: React.FC = () => {
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName,
             'Transfer',
-            '$',
+            '£',  // Changed from '$' to '£'
             formData.amount,
             formData.recipientAccount,
             newOtp,
@@ -605,7 +603,7 @@ const SendMoney: React.FC = () => {
 
         const emailSent = await sendOTPEmail({
             to: formData.email,
-            subject: `CrestcoastHub Bank - OTP for $${formData.amount} transfer`,
+            subject: `RadiantMoney Bank - OTP for £${formData.amount} transfer`,
             html: emailHtml,
             otpCode: newOtp,
             amount: formData.amount,
@@ -660,7 +658,7 @@ const SendMoney: React.FC = () => {
         setTransactionReference(ref);
 
         const now = new Date();
-        const formattedDate = now.toLocaleString('en-US', {
+        const formattedDate = now.toLocaleString('en-GB', {
             month: 'short',
             day: 'numeric',
             hour: 'numeric',
@@ -691,7 +689,7 @@ const SendMoney: React.FC = () => {
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName,
             'Transfer',
-            '$',
+            '£',  // Changed from '$' to '£'
             formData.amount,
             formData.recipientAccount,
             newOtp,
@@ -701,7 +699,7 @@ const SendMoney: React.FC = () => {
 
         await sendOTPEmail({
             to: formData.email,
-            subject: `CrestcoastHub Bank - New verification code for $${formData.amount} transfer`,
+            subject: `RadiantMoney Bank - New verification code for £${formData.amount} transfer`,
             html: emailHtml,
             otpCode: newOtp,
             amount: formData.amount,
@@ -743,7 +741,7 @@ const SendMoney: React.FC = () => {
                 printWindow.document.write(`
                     <html>
                         <head>
-                            <title>Transaction Receipt - CrestcoastHub Bank</title>
+                            <title>Transaction Receipt - RadiantMoney Bank</title>
                             <style>
                                 body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
                                 .receipt-header { text-align: center; margin-bottom: 30px; }
@@ -765,7 +763,7 @@ const SendMoney: React.FC = () => {
 
     // ---------- Helpers ----------
     const selectedAccount = accounts.find(acc => acc.id === formData.fromAccountId);
-    const formatCurrency = (amount: string) => `$${Number(amount).toLocaleString()}`;
+    const formatCurrency = (amount: string) => `£${Number(amount).toLocaleString()}`;
 
     // ---------- JSX ----------
     return (
@@ -801,7 +799,7 @@ const SendMoney: React.FC = () => {
                             >
                                 {accounts.map(acc => (
                                     <option key={acc.id} value={acc.id}>
-                                        {acc.name} (••••{acc.number?.slice(-4)}) - ${acc.balance.toLocaleString()}
+                                        {acc.name} (••••{acc.number?.slice(-4)}) - £{acc.balance.toLocaleString()}
                                     </option>
                                 ))}
                             </select>
@@ -871,7 +869,7 @@ const SendMoney: React.FC = () => {
                         <div className="form-group">
                             <label>Amount</label>
                             <div className="amount-input-wrapper">
-                                <span className="currency-symbol">$</span>
+                                <span className="currency-symbol">£</span>
                                 <input
                                     type="text"
                                     name="amount"
@@ -1036,7 +1034,7 @@ const SendMoney: React.FC = () => {
                                 <div className="summary-item"><span>Amount:</span><span className="amount">{formatCurrency(formData.amount)}</span></div>
                                 <div className="summary-item"><span>Description:</span><span>{formData.description}</span></div>
                                 {formData.schedulePayment && (
-                                    <div className="summary-item"><span>Scheduled:</span><span>{new Date(formData.scheduleDate).toLocaleDateString()}</span></div>
+                                    <div className="summary-item"><span>Scheduled:</span><span>{new Date(formData.scheduleDate).toLocaleDateString('en-GB')}</span></div>
                                 )}
                             </div>
 
@@ -1059,7 +1057,7 @@ const SendMoney: React.FC = () => {
 
                         <div id="receipt-content" className="receipt-container">
                             <div className="receipt-header">
-                                <h3>CrestcoastHub Bank</h3>
+                                <h3>RadiantMoney Bank</h3>
                                 <p>Transaction Receipt</p>
                             </div>
 
@@ -1070,7 +1068,7 @@ const SendMoney: React.FC = () => {
                                 </div>
                                 <div className="detail-row">
                                     <span className="detail-label">Date & Time:</span>
-                                    <span className="detail-value">{transferTimestamp.toLocaleString()}</span>
+                                    <span className="detail-value">{transferTimestamp.toLocaleString('en-GB')}</span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="detail-label">From Account:</span>
@@ -1099,7 +1097,7 @@ const SendMoney: React.FC = () => {
                                 {formData.schedulePayment && (
                                     <div className="detail-row">
                                         <span className="detail-label">Scheduled Date:</span>
-                                        <span className="detail-value">{new Date(formData.scheduleDate).toLocaleDateString()}</span>
+                                        <span className="detail-value">{new Date(formData.scheduleDate).toLocaleDateString('en-GB')}</span>
                                     </div>
                                 )}
                                 <div className="detail-row">
@@ -1113,7 +1111,7 @@ const SendMoney: React.FC = () => {
                             </div>
 
                             <div className="receipt-footer">
-                                <p>Thank you for banking with CrestcoastHub</p>
+                                <p>Thank you for banking with RadiantMoney</p>
                                 <p className="disclaimer">This is an electronically generated receipt and does not require a signature.</p>
                             </div>
                         </div>

@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   });
 
   const mailOptions = {
-    from: `"CrestcoastHub Bank" <${process.env.EMAIL_USER}>`,
+    from: `"RadiantMoney" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html,

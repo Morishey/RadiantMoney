@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
       <div className="container">
         <div className="footer-content">
           <div className="footer-column">
-            <h3>CrestCoastHub</h3>
+            <h3>RadiantMoney</h3>
             <p>
               As a community bank, we are deeply involved with the specific needs of local people, 
               families, and businesses.
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Mail className="contact-icon" />
-                <span>info@crestcoasthub.com</span>
+                <span>info@RadiantMoney.com</span>
               </li>
               <li>
                 <Clock className="contact-icon" />
@@ -134,7 +134,7 @@ const Footer: React.FC = () => {
         
         <div className="footer-bottom">
           <div className="copyright">
-            <p>&copy; {new Date().getFullYear()} CrestCoastHub. All Rights Reserved.</p>
+            <p>&copy; {new Date().getFullYear()} RadiantMoney. All Rights Reserved.</p>
           </div>
           <div className="footer-links">
             <a href="#">Privacy Policy</a>

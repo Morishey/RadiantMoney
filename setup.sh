@@ -1,10 +1,10 @@
 #!/bin/bash
-echo "Setting up CrestCoastHub project..."
+echo "Setting up RadiantMoney project..."
 
 # Ensure we're in the project directory
 if [ ! -f "package.json" ]; then
   echo "Error: package.json not found. Are you in the project directory?"
-  echo "Run: cd /path/to/crestcoasthub"
+  echo "Run: cd /path/to/RadiantMoney"
   exit 1
 fi
 
@@ -14,7 +14,7 @@ rm -rf node_modules package-lock.json
 echo "2. Updating package.json..."
 cat > package.json << 'EOF'
 {
-  "name": "crestcoasthub",
+  "name": "RadiantMoney",
   "private": true,
   "version": "0.0.0",
   "type": "module",

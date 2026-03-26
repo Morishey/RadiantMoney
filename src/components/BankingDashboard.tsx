@@ -207,7 +207,6 @@ const BankingDashboard: React.FC = () => {
         // Simulate invalid account (always show error)
         setRequestError('Account not found. Please check the number.');
         return;
-
     };
 
     return (
@@ -241,7 +240,7 @@ const BankingDashboard: React.FC = () => {
                         </div>
                         <form onSubmit={handleRequestSubmit}>
                             <div className="form-group">
-                                <label htmlFor="requestRecipient">CrestcoastHub Account Number</label>
+                                <label htmlFor="requestRecipient">RadiantMoney Account Number</label>
                                 <input
                                     type="text"
                                     id="requestRecipient"
@@ -273,7 +272,7 @@ const BankingDashboard: React.FC = () => {
                                 >
                                     {accounts.map(acc => (
                                         <option key={acc.id} value={acc.id}>
-                                            {acc.name} (${acc.balance.toLocaleString()})
+                                            {acc.name} (£{acc.balance.toLocaleString()})
                                         </option>
                                     ))}
                                 </select>
@@ -309,7 +308,7 @@ const BankingDashboard: React.FC = () => {
                     </button>
                     <div className="logo-area">
                         <Building size={24} className="logo-icon" />
-                        <span className="logo-text">CrestcoastHub</span>
+                        <span className="logo-text">RadiantMoney</span>
                     </div>
                 </div>
                 <div className="header-right">
@@ -320,7 +319,7 @@ const BankingDashboard: React.FC = () => {
                 </div>
             </header>
 
-            {/* Search Bar */}
+            {/* Search Bar (commented out) */}
             {/* <div className="search-container">
                 <div className="search-wrapper">
                     <Search size={18} className="search-icon" />
@@ -339,7 +338,7 @@ const BankingDashboard: React.FC = () => {
                         <div className="menu-header">
                             <div className="menu-logo">
                                 <Building size={28} className="menu-logo-icon" />
-                                <span className="menu-logo-text">CrestcoastHub</span>
+                                <span className="menu-logo-text">RadiantMoney</span>
                             </div>
                             <button
                                 className="close-menu"
@@ -389,7 +388,7 @@ const BankingDashboard: React.FC = () => {
             {/* Main Content */}
             <main className="mobile-content">
                
-                {/* Welcome Section */}
+                {/* Welcome Section (commented out) */}
                 {/* <div className="welcome-section">
                     <div className="welcome-text">
                         <h1>Welcome back, Pussy Bro! 👋</h1>
@@ -412,7 +411,7 @@ const BankingDashboard: React.FC = () => {
                         </button>
                     </div>
                     <div className="balance-amount">
-                        {showBalance ? `$${totalBalance.toLocaleString()}` : '••••••'}
+                        {showBalance ? `£${totalBalance.toLocaleString()}` : '••••••'}
                     </div>
 
                     {/* Income, Expenses, Savings in one row */}
@@ -423,7 +422,7 @@ const BankingDashboard: React.FC = () => {
                             </div>
                             <div className="summary-details">
                                 <span className="summary-label">Income</span>
-                                <span className="summary-value">${monthlyIncome.toLocaleString()}</span>
+                                <span className="summary-value">£{monthlyIncome.toLocaleString()}</span>
                             </div>
                         </div>
                         <div className="summary-divider"></div>
@@ -433,7 +432,7 @@ const BankingDashboard: React.FC = () => {
                             </div>
                             <div className="summary-details">
                                 <span className="summary-label">Expenses</span>
-                                <span className="summary-value">${monthlyExpenses.toLocaleString()}</span>
+                                <span className="summary-value">£{monthlyExpenses.toLocaleString()}</span>
                             </div>
                         </div>
                         <div className="summary-divider"></div>
@@ -495,7 +494,7 @@ const BankingDashboard: React.FC = () => {
                                 <div className="account-balance-info">
                                     <span className="balance-label">Balance</span>
                                     <span className="balance-value">
-                                        {showBalance ? `$${account.balance.toLocaleString()}` : '••••••'}
+                                        {showBalance ? `£${account.balance.toLocaleString()}` : '••••••'}
                                     </span>
                                 </div>
                                 <span className={`trend-badge ${account.trend >= 0 ? 'positive' : 'negative'}`}>
@@ -523,7 +522,7 @@ const BankingDashboard: React.FC = () => {
                                 <span className="card-number">•••• 4582</span>
                             </div>
                         </div>
-                        <span className="card-balance">$12,450</span>
+                        <span className="card-balance">£12,450</span>
                     </div>
                 </div>
 
@@ -546,7 +545,7 @@ const BankingDashboard: React.FC = () => {
                                 <div className="transaction-top">
                                     <span className="transaction-name">{transaction.name}</span>
                                     <span className={`transaction-amount ${transaction.type}`}>
-                                        {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                                        {transaction.type === 'credit' ? '+' : '-'}£{transaction.amount.toLocaleString()}
                                     </span>
                                 </div>
                                 <div className="transaction-bottom">
