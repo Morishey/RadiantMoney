@@ -220,7 +220,7 @@ const LoginPage: React.FC = () => {
           sessionTimeout: null
         };
         login(userData, fakeToken);
-        navigate('/dashboard');
+        // ✅ No manual navigate – useEffect will redirect when isAuthenticated becomes true
       }
       // Check for regular user login
       else if (email.toLowerCase() === DEMO_CREDENTIALS.email.toLowerCase() && password === DEMO_CREDENTIALS.password) {
@@ -236,7 +236,7 @@ const LoginPage: React.FC = () => {
           sessionTimeout: 60 * 1000
         };
         login(userData, fakeToken);
-        navigate('/dashboard');
+        // ✅ No manual navigate – useEffect will redirect when isAuthenticated becomes true
       } else {
         console.log('Login failed - invalid credentials');
         const result = await recordFailedAttempt(email);

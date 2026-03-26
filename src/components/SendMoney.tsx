@@ -18,7 +18,7 @@ function addWorkingDays(startDate: Date, days: number): Date {
 }
 
 function formatDate(date: Date): string {
-    return date.toLocaleDateString('en-GB', {  // UK format
+    return date.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -31,8 +31,7 @@ function formatNumberWithCommas(value: string): string {
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return decimalPart !== undefined ? `${formattedInteger}.${decimalPart}` : formattedInteger;
 }
-// ---------- End helpers ----------
-// Simple XSS protection: escape HTML special characters
+
 function escapeHtml(str: string): string {
     if (!str) return '';
     return str
@@ -42,11 +41,13 @@ function escapeHtml(str: string): string {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
+// ---------- End helpers ----------
+
 // ---------- Interfaces ----------
 interface TransferFormData {
     fromAccountId: string;
     recipientAccount: string;
-    routingNumber: string;
+    sortCode: string;        // renamed from routingNumber
     bankName: string;
     recipientName: string;
     email: string;
@@ -64,7 +65,7 @@ interface SecurityData {
 interface FormErrors {
     fromAccountId?: string;
     recipientAccount?: string;
-    routingNumber?: string;
+    sortCode?: string;       // renamed
     recipientName?: string;
     email?: string;
     amount?: string;
@@ -82,45 +83,49 @@ interface Notification {
 }
 // ---------- End interfaces ----------
 
-// Mock routing number database
-const routingNumberDB: Record<string, string> = {
-    '011401533': 'Citizens Bank',
-    '071000301': 'Chase Bank',
-    '091000019': 'U.S. Bank',
-    '122000247': 'Wells Fargo',
-    '063100277': 'Truist Bank',
-    '021000021': 'JPMorgan Chase Bank',
-    '121000358': 'Bank of America',
-    '031000011': 'Wells Fargo Bank',
-    '051000017': 'PNC Bank',
-    '071000013': 'U.S. Bank',
-    '021000322': 'Citibank',
-    '011000015': 'TD Bank',
-    '041000124': 'Fifth Third',
-    '053000196': 'Truist Bank',
-    '022000046': 'KeyBank',
-    '122000661': 'First Republic Bank',
-    '111000038': 'Comerica Bank',
-    '072000096': 'Huntington Bank',
-    '091000022': 'BMO Harris Bank',
-    '125000105': 'Zions Bank',
-    '102000021': 'UMB Bank',
-    '103000173': 'BOK Financial',
-    '101000187': 'Intrust Bank',
-    '062000019': 'BBVA USA',
-    '084000026': 'Regions Bank',
-    '322078069': 'Navy Federal Credit Union',
-    '271079819': 'Alliant Credit Union',
-    '241081247': 'Wright-Patt Credit Union',
-    '281082915': 'First Tech Federal Credit Union',
-    '253177835': 'Suncoast Credit Union',
-    '242077147': 'Keesler Federal Credit Union',
-    '292977144': 'BECU',
-    '314977129': 'Randolph-Brooks Federal Credit Union',
-    '272077457': 'Lake Michigan Credit Union',
+// UK sort code to bank name mapping (6 digits with hyphens)
+const sortCodeDB: Record<string, string> = {
+    '20-00-00': 'Barclays',
+    '40-00-00': 'HSBC UK',
+    '30-00-00': 'Lloyds Bank',
+    '60-00-00': 'NatWest',
+    '09-00-00': 'Santander UK',
+    '83-00-00': 'Royal Bank of Scotland',
+    '80-00-00': 'Bank of Scotland',
+    '11-00-00': 'Halifax',
+    '07-00-00': 'Nationwide Building Society',
+    '77-00-00': 'TSB Bank',
+    '08-00-00': 'Co-operative Bank',
+    '23-00-00': 'Metro Bank',
+    '04-00-00': 'Monzo',            // Starling also uses 04-00-00, but only one will show
+    '82-00-00': 'Virgin Money',
+    '05-00-00': 'Yorkshire Bank',
+    '93-00-00': 'AIB (NI)',
+    '95-00-00': 'Danske Bank (NI)',
+    '98-00-00': 'Ulster Bank',
+    '40-12-34': 'First Direct',
+    '40-56-78': 'M&S Bank',
+    '40-90-12': 'Tesco Bank',
+    '40-99-88': "Sainsbury's Bank",
+    '16-00-00': 'Triodos Bank',
+    '01-00-00': 'Bank of Ireland (UK)',
+    '02-00-00': 'Allied Irish Bank (GB)',
+    '03-00-00': 'Coutts & Co',
+    '06-00-00': 'Cater Allen',
+    '22-00-00': 'Handelsbanken'
 };
 
-// ---------- OTP Section ----------
+// Format sort code as XX-XX-XX while typing
+function formatSortCode(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    const parts = [];
+    for (let i = 0; i < digits.length; i += 2) {
+        parts.push(digits.slice(i, i + 2));
+    }
+    return parts.join('-');
+}
+
+// ---------- OTP Section (unchanged) ----------
 const validOtps = ['3423232', '8148663', '3898576', '1036033', '5289473', '7612345', '4901827', '6354912', '8745632', '2190876',
     '8148663',
     '3898576',
@@ -147,7 +152,6 @@ function getRandomOTP(): string {
     return validOtps[randomIndex];
 }
 
-// ========== FULL HTML EMAIL TEMPLATE ==========
 function generateOTPEmailHTML(
     userName: string,
     transactionType: string,
@@ -391,7 +395,7 @@ const SendMoney: React.FC = () => {
     const [formData, setFormData] = useState<TransferFormData>({
         fromAccountId: accounts.length > 0 ? accounts[0].id : '',
         recipientAccount: '',
-        routingNumber: '',
+        sortCode: '',
         bankName: '',
         recipientName: '',
         email: user?.email || '',
@@ -430,6 +434,24 @@ const SendMoney: React.FC = () => {
             const parts = cleaned.split('.');
             const rawNumber = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
             setFormData(prev => ({ ...prev, amount: rawNumber }));
+        } else if (name === 'sortCode') {
+            // Auto‑format sort code as user types
+            const formatted = formatSortCode(value);
+            setFormData(prev => ({ ...prev, sortCode: formatted, bankName: '' }));
+            // Clear any previous timeout
+            if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
+            // Look up bank name after a delay
+            const timeout = window.setTimeout(() => {
+                const cleaned = formatted.replace(/\D/g, '');
+                if (cleaned.length === 6) {
+                    const formattedKey = `${cleaned.slice(0,2)}-${cleaned.slice(2,4)}-${cleaned.slice(4,6)}`;
+                    const bank = sortCodeDB[formattedKey] || 'Unknown Bank';
+                    setFormData(prev => ({ ...prev, bankName: bank }));
+                } else {
+                    setFormData(prev => ({ ...prev, bankName: '' }));
+                }
+            }, 500);
+            setBankLookupTimeout(timeout);
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -439,20 +461,6 @@ const SendMoney: React.FC = () => {
 
         if (errors[name as keyof FormErrors]) {
             setErrors(prev => ({ ...prev, [name]: undefined }));
-        }
-
-        if (name === 'routingNumber') {
-            if (bankLookupTimeout) clearTimeout(bankLookupTimeout);
-            const timeout = window.setTimeout(() => {
-                const cleanedRouting = value.replace(/\D/g, '');
-                if (cleanedRouting.length === 9) {
-                    const bankName = routingNumberDB[cleanedRouting] || 'Unknown Bank';
-                    setFormData(prev => ({ ...prev, bankName }));
-                } else {
-                    setFormData(prev => ({ ...prev, bankName: '' }));
-                }
-            }, 500);
-            setBankLookupTimeout(timeout);
         }
     };
 
@@ -490,22 +498,27 @@ const SendMoney: React.FC = () => {
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
         if (!formData.fromAccountId) newErrors.fromAccountId = 'Please select an account';
+
+        // UK account number: 6–8 digits
         if (!formData.recipientAccount.trim()) {
             newErrors.recipientAccount = 'Recipient account number is required';
         } else {
             const cleanedAccount = formData.recipientAccount.replace(/\s/g, '');
-            if (!/^\d{10,16}$/.test(cleanedAccount)) {
-                newErrors.recipientAccount = 'Account number must be 10 to 16 digits';
+            if (!/^\d{6,8}$/.test(cleanedAccount)) {
+                newErrors.recipientAccount = 'Account number must be 6 to 8 digits';
             }
         }
-        if (!formData.routingNumber.trim()) {
-            newErrors.routingNumber = 'Routing number is required';
+
+        // Sort code: 6 digits
+        if (!formData.sortCode.trim()) {
+            newErrors.sortCode = 'Sort code is required';
         } else {
-            const cleanedRouting = formData.routingNumber.replace(/\s/g, '');
-            if (!/^\d{9}$/.test(cleanedRouting)) {
-                newErrors.routingNumber = 'Routing number must be exactly 9 digits';
+            const cleaned = formData.sortCode.replace(/\D/g, '');
+            if (cleaned.length !== 6) {
+                newErrors.sortCode = 'Sort code must be 6 digits';
             }
         }
+
         if (!formData.recipientName.trim()) newErrors.recipientName = 'Recipient name is required';
 
         if (!formData.email.trim()) {
@@ -568,7 +581,7 @@ const SendMoney: React.FC = () => {
 
     const getFormattedDateTime = (): string => {
         const now = new Date();
-        return now.toLocaleString('en-GB', {  // UK format
+        return now.toLocaleString('en-GB', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -593,7 +606,7 @@ const SendMoney: React.FC = () => {
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName,
             'Transfer',
-            '£',  // Changed from '$' to '£'
+            '£',
             formData.amount,
             formData.recipientAccount,
             newOtp,
@@ -689,7 +702,7 @@ const SendMoney: React.FC = () => {
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName,
             'Transfer',
-            '£',  // Changed from '$' to '£'
+            '£',
             formData.amount,
             formData.recipientAccount,
             newOtp,
@@ -813,8 +826,8 @@ const SendMoney: React.FC = () => {
                                 name="recipientAccount"
                                 value={formData.recipientAccount}
                                 onChange={handleChange}
-                                placeholder="10 to 16 digits"
-                                maxLength={16}
+                                placeholder="6 to 8 digits"
+                                maxLength={8}
                                 className={errors.recipientAccount ? 'error' : ''}
                                 disabled={isLoading}
                             />
@@ -822,18 +835,18 @@ const SendMoney: React.FC = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Routing Number</label>
+                            <label>Sort Code</label>
                             <input
                                 type="text"
-                                name="routingNumber"
-                                value={formData.routingNumber}
+                                name="sortCode"
+                                value={formData.sortCode}
                                 onChange={handleChange}
-                                placeholder="9-digit routing number"
-                                maxLength={9}
-                                className={errors.routingNumber ? 'error' : ''}
+                                placeholder="XX-XX-XX (e.g., 00-00-00)"
+                                maxLength={8}
+                                className={errors.sortCode ? 'error' : ''}
                                 disabled={isLoading}
                             />
-                            {errors.routingNumber && <span className="error-message"><AlertCircle size={14} /> {errors.routingNumber}</span>}
+                            {errors.sortCode && <span className="error-message"><AlertCircle size={14} /> {errors.sortCode}</span>}
                             {formData.bankName && <span className="bank-name-hint">{formData.bankName}</span>}
                         </div>
 
@@ -1083,8 +1096,8 @@ const SendMoney: React.FC = () => {
                                     <span className="detail-value">{formData.recipientAccount}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Routing Number:</span>
-                                    <span className="detail-value">{formData.routingNumber} ({formData.bankName || 'N/A'})</span>
+                                    <span className="detail-label">Sort Code:</span>
+                                    <span className="detail-value">{formData.sortCode} ({formData.bankName || 'N/A'})</span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="detail-label">Amount:</span>

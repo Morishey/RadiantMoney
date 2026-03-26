@@ -9,10 +9,7 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* =========================
-   TYPES
-========================= */
-
+// ==================== TYPES ====================
 interface User {
   id: string;
   name: string;
@@ -35,10 +32,7 @@ interface AuthContextType {
   verifyTemporaryAccess: (token: string) => Promise<boolean>;
 }
 
-/* =========================
-   STORAGE KEYS
-========================= */
-
+// ==================== CONSTANTS ====================
 const USER_KEY = "user";
 const TOKEN_KEY = "token";
 const AUTH_KEY = "isAuthenticated";
@@ -46,44 +40,30 @@ const GLOBAL_SESSION_KEY = "radiantmoney_global_session";
 const DEVICE_KEY = "device_id";
 const LAST_ACTIVITY_KEY = "last_activity";
 const SESSION_TIMEOUT_KEY = "session_timeout";
-
-/* =========================
-   LOGIN ATTEMPT TRACKING
-========================= */
-
-interface LoginAttempt {
-  count: number;
-  firstAttemptTime: number;
-  blockedUntil?: number;
-}
-
 const LOGIN_ATTEMPTS_KEY = "login_attempts";
+
 const MAX_ATTEMPTS = 3;
 const COOLDOWN_HOURS = 24;
 const COOLDOWN_MS = COOLDOWN_HOURS * 60 * 60 * 1000;
 
-/* =========================
-   TEMP TOKEN STORE
-========================= */
-
-const temporaryTokens = new Map<
-  string,
-  {
-    email: string;
-    expiresAt: number;
-    usedDevices: Set<string>;
+const getSessionTimeout = () => {
+  // @ts-ignore – Vite injects import.meta.env
+  const envTimeout = import.meta.env.VITE_SESSION_TIMEOUT;
+  if (envTimeout && !isNaN(parseInt(envTimeout))) {
+    return parseInt(envTimeout) * 60 * 1000;
   }
->();
+  return 30 * 60 * 1000; // 30 minutes default
+};
 
-/* =========================
-   HELPERS
-========================= */
-
+// ==================== HELPERS ====================
 const generateToken = (): string => {
-  return (
-    Math.random().toString(36).substring(2) +
-    Math.random().toString(36).substring(2)
-  );
+  try {
+    const array = new Uint32Array(4);
+    crypto.getRandomValues(array);
+    return Array.from(array, (num) => num.toString(36)).join('');
+  } catch {
+    return Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  }
 };
 
 const getDeviceId = (): string => {
@@ -95,19 +75,69 @@ const getDeviceId = (): string => {
   return deviceId;
 };
 
-/* =========================
-   CONTEXT
-========================= */
+interface LoginAttempt {
+  count: number;
+  firstAttemptTime: number;
+  blockedUntil?: number;
+}
 
+const getLoginAttempts = (): LoginAttempt => {
+  const stored = localStorage.getItem(LOGIN_ATTEMPTS_KEY);
+  if (!stored) return { count: 0, firstAttemptTime: Date.now() };
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return { count: 0, firstAttemptTime: Date.now() };
+  }
+};
+
+const saveLoginAttempts = (attempts: LoginAttempt) => {
+  localStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(attempts));
+};
+
+const isLoginBlocked = (): boolean => {
+  const attempts = getLoginAttempts();
+  if (attempts.blockedUntil && Date.now() < attempts.blockedUntil) return true;
+  return false;
+};
+
+const recordFailedLogin = () => {
+  let attempts = getLoginAttempts();
+  const now = Date.now();
+
+  if (attempts.blockedUntil && now < attempts.blockedUntil) return;
+
+  if (now - attempts.firstAttemptTime > COOLDOWN_MS) {
+    attempts = { count: 1, firstAttemptTime: now };
+  } else {
+    attempts.count += 1;
+  }
+
+  if (attempts.count >= MAX_ATTEMPTS) {
+    attempts.blockedUntil = now + COOLDOWN_MS;
+  }
+
+  saveLoginAttempts(attempts);
+};
+
+const clearLoginAttempts = () => {
+  localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+};
+
+// ==================== TEMP TOKEN STORE ====================
+const temporaryTokens = new Map<
+  string,
+  {
+    email: string;
+    expiresAt: number;
+    usedDevices: Set<string>;
+  }
+>();
+
+// ==================== CONTEXT ====================
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/* =========================
-   PROVIDER
-========================= */
-
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -115,14 +145,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* =========================
-     LOGOUT (defined first)
-  ========================= */
-
   const logout = useCallback(() => {
     console.log('Logout called');
-    
-    // Clear all timers
     if (sessionTimerRef.current) {
       clearTimeout(sessionTimerRef.current);
       sessionTimerRef.current = null;
@@ -131,7 +155,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       clearInterval(activityCheckIntervalRef.current);
       activityCheckIntervalRef.current = null;
     }
-    
     setUser(null);
     setToken(null);
     localStorage.removeItem(USER_KEY);
@@ -139,13 +162,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(LAST_ACTIVITY_KEY);
     localStorage.removeItem(SESSION_TIMEOUT_KEY);
-    
     navigate("/login");
   }, [navigate]);
-
-  /* =========================
-     SESSION MANAGEMENT
-  ========================= */
 
   const clearSessionTimer = useCallback(() => {
     if (sessionTimerRef.current) {
@@ -154,26 +172,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  const checkSessionExpiry = useCallback(() => {
-    if (!user) return;
-    
-    if (user.role === 'user' && user.sessionTimeout) {
-      const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
-      if (lastActivity) {
-        const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
-        if (timeSinceLastActivity > user.sessionTimeout) {
-          console.log('Session expired due to inactivity');
-          logout();
-        }
-      }
-    }
-  }, [user, logout]);
-
   const startSessionTimer = useCallback((timeout: number) => {
     clearSessionTimer();
-    
     localStorage.setItem(SESSION_TIMEOUT_KEY, timeout.toString());
-    
     sessionTimerRef.current = setTimeout(() => {
       console.log('Session timer expired - logging out');
       logout();
@@ -183,7 +184,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const updateLastActivity = useCallback(() => {
     if (user?.role === 'user') {
       localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
-      
       if (user.sessionTimeout) {
         clearSessionTimer();
         sessionTimerRef.current = setTimeout(() => {
@@ -194,19 +194,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [user, clearSessionTimer, logout]);
 
-  /* =========================
-     LOAD STORED DATA
-  ========================= */
+  const checkSessionExpiry = useCallback(() => {
+    if (!user || user.role !== 'user') return;
+    const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (lastActivity && user.sessionTimeout) {
+      const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+      if (timeSinceLastActivity > user.sessionTimeout) {
+        console.log('Session expired due to inactivity');
+        logout();
+      }
+    }
+  }, [user, logout]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(USER_KEY);
     const savedToken = localStorage.getItem(TOKEN_KEY);
-    
     if (savedUser && savedToken) {
       try {
         const parsedUser = JSON.parse(savedUser);
         console.log('Loaded saved user:', parsedUser);
-        
         if (parsedUser.isTemporary && parsedUser.expiresAt) {
           if (Date.now() > parsedUser.expiresAt) {
             console.log('Temporary user expired');
@@ -215,7 +221,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             return;
           }
         }
-        
         if (parsedUser.role === 'user' && parsedUser.sessionTimeout) {
           const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
           if (lastActivity) {
@@ -226,18 +231,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               setIsLoading(false);
               return;
             }
-          }
-          
-          const remainingTime = parsedUser.sessionTimeout - (Date.now() - parseInt(lastActivity || Date.now().toString()));
-          if (remainingTime > 0) {
-            startSessionTimer(remainingTime);
+            const remainingTime = parsedUser.sessionTimeout - timeSinceLastActivity;
+            if (remainingTime > 0) {
+              startSessionTimer(remainingTime);
+            } else {
+              logout();
+              setIsLoading(false);
+              return;
+            }
           } else {
-            logout();
-            setIsLoading(false);
-            return;
+            startSessionTimer(parsedUser.sessionTimeout);
+            updateLastActivity();
           }
         }
-        
         setUser(parsedUser);
         setToken(savedToken);
       } catch (error) {
@@ -248,40 +254,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(false);
   }, []);
 
-  /* =========================
-     ACTIVITY LISTENERS
-  ========================= */
-
   useEffect(() => {
     if (user?.role === 'user' && user.sessionTimeout) {
       const activityEvents = ['mousedown', 'keydown', 'scroll', 'mousemove', 'touchstart'];
-      
-      const handleActivity = () => {
-        updateLastActivity();
-      };
-      
-      activityEvents.forEach(event => {
-        window.addEventListener(event, handleActivity);
-      });
-      
-      activityCheckIntervalRef.current = setInterval(() => {
-        checkSessionExpiry();
-      }, 800000); // Check every ~13 minutes
-      
+      const handleActivity = () => updateLastActivity();
+      activityEvents.forEach(event => window.addEventListener(event, handleActivity));
+      activityCheckIntervalRef.current = setInterval(() => checkSessionExpiry(), 60 * 1000);
       return () => {
-        activityEvents.forEach(event => {
-          window.removeEventListener(event, handleActivity);
-        });
-        if (activityCheckIntervalRef.current) {
-          clearInterval(activityCheckIntervalRef.current);
-        }
+        activityEvents.forEach(event => window.removeEventListener(event, handleActivity));
+        if (activityCheckIntervalRef.current) clearInterval(activityCheckIntervalRef.current);
       };
     }
   }, [user, updateLastActivity, checkSessionExpiry]);
-
-  /* =========================
-     STORAGE CHANGE LISTENER
-  ========================= */
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -290,144 +274,77 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const storedUser = localStorage.getItem(USER_KEY);
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
-          if (parsedUser.sessionId !== currentSession) {
-            logout();
-          }
+          if (parsedUser.sessionId !== currentSession) logout();
         }
       }
-      if (e.key === TOKEN_KEY && !e.newValue) {
-        logout();
-      }
-      if (e.key === LAST_ACTIVITY_KEY) {
-        checkSessionExpiry();
-      }
+      if (e.key === TOKEN_KEY && !e.newValue) logout();
     };
-
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [logout, checkSessionExpiry]);
-
-  /* =========================
-     UNAUTHORIZED EVENT LISTENER
-  ========================= */
+  }, [logout]);
 
   useEffect(() => {
-    const handleUnauthorized = () => {
-      logout();
-    };
+    const handleUnauthorized = () => logout();
     window.addEventListener("unauthorized", handleUnauthorized);
     return () => window.removeEventListener("unauthorized", handleUnauthorized);
   }, [logout]);
 
-  /* =========================
-     TEMP USER EXPIRY CHECK
-  ========================= */
-
   useEffect(() => {
     const timer = setInterval(() => {
-      if (user?.isTemporary && user.expiresAt) {
-        if (Date.now() > user.expiresAt) {
-          logout();
-        }
-      }
-    }, 800000); // Check every ~13 minutes
+      if (user?.isTemporary && user.expiresAt && Date.now() > user.expiresAt) logout();
+    }, 60 * 1000);
     return () => clearInterval(timer);
   }, [user, logout]);
 
-  /* =========================
-     CLEANUP
-  ========================= */
-
   useEffect(() => {
     return () => {
-      if (sessionTimerRef.current) {
-        clearTimeout(sessionTimerRef.current);
-      }
-      if (activityCheckIntervalRef.current) {
-        clearInterval(activityCheckIntervalRef.current);
-      }
+      if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+      if (activityCheckIntervalRef.current) clearInterval(activityCheckIntervalRef.current);
     };
   }, []);
 
-  /* =========================
-     LOGIN
-
-     ========================= */
-
   const login = (userData: User, newToken: string) => {
-    console.log('Login called with:', userData, newToken);
-    
+    console.log('Login called with:', userData.email);
+    if (isLoginBlocked()) {
+      console.warn('Login blocked due to too many attempts');
+      return;
+    }
+    clearLoginAttempts();
     const sessionId = generateToken();
     const deviceId = getDeviceId();
-    
     let sessionTimeout = null;
-    if (userData.role === 'user') {
-      sessionTimeout = 60 * 1000;
-    }
-    
-    const userWithSession = {
-      ...userData,
-      sessionId,
-      deviceId,
-      sessionTimeout
-    };
-
+    if (userData.role === 'user') sessionTimeout = getSessionTimeout();
+    const userWithSession = { ...userData, sessionId, deviceId, sessionTimeout };
     localStorage.setItem(GLOBAL_SESSION_KEY, sessionId);
     localStorage.setItem(USER_KEY, JSON.stringify(userWithSession));
     localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(AUTH_KEY, "true");
-    
     if (userData.role === 'user') {
       localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
-      
-      if (sessionTimeout) {
-        startSessionTimer(sessionTimeout);
-      }
+      if (sessionTimeout) startSessionTimer(sessionTimeout);
     }
-
     setUser(userWithSession);
     setToken(newToken);
-    
-    console.log('User set, isAuthenticated should be true');
+    console.log('User logged in successfully');
   };
 
-  /* =========================
-     TEMP ACCESS LINK
-  ========================= */
-
-  const generateTemporaryAccess = async (
-    email: string,
-    hours: number = 24
-  ): Promise<string> => {
+  const generateTemporaryAccess = async (email: string, hours: number = 24): Promise<string> => {
     const token = generateToken();
     const expiresAt = Date.now() + hours * 60 * 60 * 1000;
-    temporaryTokens.set(token, {
-      email,
-      expiresAt,
-      usedDevices: new Set()
-    });
+    temporaryTokens.set(token, { email, expiresAt, usedDevices: new Set() });
     return token;
   };
 
-  const verifyTemporaryAccess = async (
-    token: string
-  ): Promise<boolean> => {
+  const verifyTemporaryAccess = async (token: string): Promise<boolean> => {
     const tokenData = temporaryTokens.get(token);
     if (!tokenData) return false;
     if (Date.now() > tokenData.expiresAt) {
       temporaryTokens.delete(token);
       return false;
     }
-
     const deviceId = getDeviceId();
-    if (
-      tokenData.usedDevices.size > 0 &&
-      !tokenData.usedDevices.has(deviceId)
-    ) {
-      return false;
-    }
+    if (tokenData.usedDevices.size > 0 && !tokenData.usedDevices.has(deviceId)) return false;
     tokenData.usedDevices.add(deviceId);
-
     const tempUser: User = {
       id: `temp_${Date.now()}`,
       name: "Guest User",
@@ -437,17 +354,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       expiresAt: tokenData.expiresAt,
       deviceId
     };
-
     const tempToken = generateToken();
     login(tempUser, tempToken);
-
     temporaryTokens.delete(token);
     return true;
   };
-
-  /* =========================
-     CONTEXT VALUE
-  ========================= */
 
   const value = {
     user,
@@ -459,21 +370,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     verifyTemporaryAccess
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
+  if (isLoading) return <div>Loading...</div>;
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-/* =========================
-   HOOK
-========================= */
-
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 };

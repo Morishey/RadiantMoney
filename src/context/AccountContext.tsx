@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 interface Account {
@@ -15,19 +15,20 @@ interface AccountContextType {
   accounts: Account[];
   updateAccountBalance: (accountId: string, newBalance: number) => void;
   deductFromAccount: (accountId: string, amount: number) => boolean;
-  refreshAccounts: () => void;
+  refreshAccounts: () => void; // kept for compatibility
 }
 
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
+// Initial balances (total = £70,009.67)
 const initialAccounts: Account[] = [
   {
     id: '1',
     type: 'checking',
     name: 'Personal Checking',
     number: '•••• 4582',
-    balance: 15450.75,
-    currency: 'USD',
+    balance: 45000.00,
+    currency: 'GBP',
     trend: 2.5
   },
   {
@@ -35,8 +36,8 @@ const initialAccounts: Account[] = [
     type: 'savings',
     name: 'High-Yield Savings',
     number: '•••• 9123',
-    balance: 327890.50,
-    currency: 'USD',
+    balance: 20000.00,
+    currency: 'GBP',
     trend: 4.2
   },
   {
@@ -44,44 +45,89 @@ const initialAccounts: Account[] = [
     type: 'investment',
     name: 'Investment Portfolio',
     number: '•••• 3305',
-    balance: 634567.89,
-    currency: 'USD',
+    balance: 5009.67,
+    currency: 'GBP',
     trend: 8.3
   }
 ];
 
+const getStorageKey = (userId: string) => `radiantmoney_accounts_${userId}`;
+
 export const AccountProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>(() => {
-    const saved = localStorage.getItem('accounts');
-    return saved ? JSON.parse(saved) : initialAccounts;
-  });
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
+  // Load accounts when user changes
   useEffect(() => {
-    localStorage.setItem('accounts', JSON.stringify(accounts));
-  }, [accounts]);
+    if (!user) {
+      setAccounts([]);
+      return;
+    }
 
-  const updateAccountBalance = (accountId: string, newBalance: number) => {
+    const storageKey = getStorageKey(user.id);
+    const saved = localStorage.getItem(storageKey);
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAccounts(parsed);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse stored accounts', e);
+      }
+    }
+
+    // No saved data – use initial accounts
+    setAccounts(initialAccounts);
+  }, [user]);
+
+  // Save accounts whenever they change (only if user exists)
+  useEffect(() => {
+    if (user && accounts.length > 0) {
+      const storageKey = getStorageKey(user.id);
+      localStorage.setItem(storageKey, JSON.stringify(accounts));
+    }
+  }, [accounts, user]);
+
+  // Sync across tabs
+  useEffect(() => {
+    if (!user) return;
+
+    const storageKey = getStorageKey(user.id);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === storageKey && e.newValue) {
+        try {
+          const newAccounts = JSON.parse(e.newValue);
+          if (Array.isArray(newAccounts)) setAccounts(newAccounts);
+        } catch (e) {
+          console.error('Failed to parse storage event accounts', e);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user]);
+
+  const updateAccountBalance = useCallback((accountId: string, newBalance: number) => {
     setAccounts(prev =>
       prev.map(acc => (acc.id === accountId ? { ...acc, balance: newBalance } : acc))
     );
-  };
+  }, []);
 
-  const deductFromAccount = (accountId: string, amount: number): boolean => {
+  const deductFromAccount = useCallback((accountId: string, amount: number): boolean => {
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return false;
     if (account.balance < amount) return false;
-    const newBalance = account.balance - amount;
-    updateAccountBalance(accountId, newBalance);
+    updateAccountBalance(accountId, account.balance - amount);
     return true;
-  };
+  }, [accounts, updateAccountBalance]);
 
-  const refreshAccounts = () => {
-    const saved = localStorage.getItem('accounts');
-    if (saved) {
-      setAccounts(JSON.parse(saved));
-    }
-  };
+  const refreshAccounts = useCallback(() => {
+    setAccounts(prev => [...prev]);
+  }, []);
 
   return (
     <AccountContext.Provider value={{ accounts, updateAccountBalance, deductFromAccount, refreshAccounts }}>
