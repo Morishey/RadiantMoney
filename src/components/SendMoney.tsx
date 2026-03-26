@@ -444,7 +444,7 @@ const SendMoney: React.FC = () => {
             const timeout = window.setTimeout(() => {
                 const cleaned = formatted.replace(/\D/g, '');
                 if (cleaned.length === 6) {
-                    const formattedKey = `${cleaned.slice(0,2)}-${cleaned.slice(2,4)}-${cleaned.slice(4,6)}`;
+                    const formattedKey = `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(4, 6)}`;
                     const bank = sortCodeDB[formattedKey] || 'Unknown Bank';
                     setFormData(prev => ({ ...prev, bankName: bank }));
                 } else {
@@ -903,8 +903,8 @@ const SendMoney: React.FC = () => {
                                 value={formData.description}
                                 onChange={handleChange}
                                 placeholder="What's this for?"
-                                rows={3}
-                                className={errors.description ? 'error' : ''}
+                                rows={2}
+                                className={`description-textarea ${errors.description ? 'error' : ''}`}
                                 disabled={isLoading}
                             />
                             {errors.description && <span className="error-message"><AlertCircle size={14} /> {errors.description}</span>}

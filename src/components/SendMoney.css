@@ -879,3 +879,25 @@ input[type="date"].error {
     z-index: 1;
     background: transparent;
 }
+
+/* Description textarea – match other inputs */
+.form-group textarea.description-textarea {
+    resize: none;
+    height: auto;
+    min-height: 42px; /* same as input height */
+    max-height: 80px; /* optional: prevents too tall */
+    line-height: 1.5;
+    font-family: inherit;
+}
+
+/* Ensure consistent appearance across all textareas */
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: #f8fafc;
+}
