@@ -1,6 +1,6 @@
 // components/Features.tsx
 import React from 'react';
-import { ShieldCheck, Clock, TrendingUp, Globe, Users, Leaf } from 'lucide-react';
+import { Shield, Clock, TrendingUp, Globe, Users, RefreshCw } from 'lucide-react';
 
 // Define TypeScript interfaces
 interface Feature {
@@ -9,10 +9,11 @@ interface Feature {
   description: string;
 }
 
+
 const Features: React.FC = () => {
   const personalFeatures: Feature[] = [
     {
-      icon: <ShieldCheck />,
+      icon: <Shield />,
       title: "FDIC Insured",
       description: "Your money is seamlessly insured by the full faith and credit of the federal government up to FDIC established limits."
     },
@@ -30,7 +31,7 @@ const Features: React.FC = () => {
 
   const businessFeatures: Feature[] = [
     {
-      icon: <Leaf />,
+      icon: <RefreshCw />,
       title: "Low Carbon, High Performance",
       description: "Grow your business with a bank invested in low-carbon projects and sustainable growth."
     },
