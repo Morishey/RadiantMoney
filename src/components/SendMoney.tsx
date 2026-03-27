@@ -167,9 +167,12 @@ function generateOTPEmailHTML(
     recipientInfo: string,
     otpCode: string,
     expiryMinutes: number,
+    scheduledDate: string | null,
     datetime: string
 ): string {
     const formattedAmount = `${currency} ${amount}`;
+    const dateLabel = scheduledDate ? 'Scheduled Date' : 'Date & Time';
+    const dateValue = scheduledDate ? scheduledDate : datetime;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -344,8 +347,8 @@ function generateOTPEmailHTML(
                     <span class="detail-value">${escapeHtml(recipientInfo)}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Date & Time</span>
-                    <span class="detail-value">${escapeHtml(datetime)}</span>
+                    <span class="detail-label">${escapeHtml(dateLabel)}</span>
+                    <span class="detail-value">${escapeHtml(dateValue)}</span>
                 </div>
             </div>
 
@@ -376,10 +379,15 @@ function generateTransferConfirmationEmailHTML(
     fromAccountName: string,
     toAccountInfo: string,
     transactionReference: string,
+    scheduledDate: string | null,
     datetime: string
 ): string {
     const formattedAmount = `£${amount}`;
     const isExternal = transferType === 'external';
+    const dateLabel = scheduledDate ? 'Scheduled Date' : 'Date & Time';
+    const dateValue = scheduledDate ? scheduledDate : datetime;
+    const status = scheduledDate ? 'Pending' : 'Completed';
+    const statusColor = scheduledDate ? '#f59e0b' : '#10b981';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -498,7 +506,7 @@ function generateTransferConfirmationEmailHTML(
                 Hello <strong>${escapeHtml(recipientName)}</strong>,
             </div>
             <div class="instruction">
-                Your ${isExternal ? 'external transfer' : 'internal transfer'} has been completed successfully.
+                Your ${isExternal ? 'external transfer' : 'internal transfer'} has been ${scheduledDate ? 'scheduled' : 'completed'} successfully.
             </div>
 
             <div class="details">
@@ -507,8 +515,8 @@ function generateTransferConfirmationEmailHTML(
                     <span class="detail-value">${escapeHtml(transactionReference)}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Date & Time</span>
-                    <span class="detail-value">${escapeHtml(datetime)}</span>
+                    <span class="detail-label">${escapeHtml(dateLabel)}</span>
+                    <span class="detail-value">${escapeHtml(dateValue)}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">From Account</span>
@@ -524,12 +532,12 @@ function generateTransferConfirmationEmailHTML(
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Status</span>
-                    <span class="detail-value" style="color: #10b981;">Completed</span>
+                    <span class="detail-value" style="color: ${statusColor};">${status}</span>
                 </div>
             </div>
 
             <div class="thankyou">
-                <p>Thank you for banking with RadiantMoney.<br>Your funds have been transferred securely.</p>
+                <p>Thank you for banking with RadiantMoney.<br>Your funds have been ${scheduledDate ? 'scheduled for transfer' : 'transferred securely'}.</p>
             </div>
         </div>
         <div class="footer">
@@ -804,6 +812,7 @@ const SendMoney: React.FC = () => {
             recipientInfo = `${toAccount?.name} (${toAccount?.number})`;
         }
 
+        const scheduledDate = formData.schedulePayment ? new Date(formData.scheduleDate).toLocaleDateString('en-GB') : null;
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName || (accounts.find(acc => acc.id === formData.toAccountId)?.name || 'my own account'),
             formData.transferType === 'external' ? 'External Transfer' : 'Internal Transfer',
@@ -812,6 +821,7 @@ const SendMoney: React.FC = () => {
             recipientInfo,
             newOtp,
             10,
+            scheduledDate,
             getFormattedDateTime()
         );
 
@@ -892,6 +902,8 @@ const SendMoney: React.FC = () => {
             hour: 'numeric',
             minute: 'numeric',
         });
+        
+        // Add transaction (status = pending if scheduled, otherwise completed)
         const newTransaction = {
             id: Date.now().toString(),
             name: formData.transferType === 'external' 
@@ -900,7 +912,7 @@ const SendMoney: React.FC = () => {
             date: formattedDate,
             amount: amountNum,
             type: 'debit' as const,
-            status: 'completed' as const,
+            status: formData.schedulePayment ? 'pending' as const : 'completed' as const,
             category: formData.transferType === 'external' ? 'Transfer' : 'Internal Transfer',
             iconName: formData.transferType === 'external' ? 'send' : 'repeat',
             reference: ref,
@@ -913,6 +925,7 @@ const SendMoney: React.FC = () => {
             ? `${formData.recipientName} (${formData.recipientAccount})`
             : `${accounts.find(acc => acc.id === formData.toAccountId)?.name} (${accounts.find(acc => acc.id === formData.toAccountId)?.number})`;
 
+        const scheduledDate = formData.schedulePayment ? new Date(formData.scheduleDate).toLocaleDateString('en-GB') : null;
         const confirmationHtml = generateTransferConfirmationEmailHTML(
             formData.recipientName || fromAccount?.name || 'Customer',
             formData.amount,
@@ -920,10 +933,11 @@ const SendMoney: React.FC = () => {
             fromAccount?.name || 'Unknown Account',
             toAccountInfo,
             ref,
+            scheduledDate,
             getFormattedDateTime()
         );
 
-        // Send confirmation email in the background; don't wait for it to complete
+        // Send confirmation email in the background
         sendOTPEmail({
             to: formData.email,
             subject: `Transfer Confirmation - £${formData.amount} ${formData.transferType === 'external' ? 'transfer' : 'internal transfer'}`,
@@ -947,6 +961,7 @@ const SendMoney: React.FC = () => {
             recipientInfo = `${toAccount?.name} (${toAccount?.number})`;
         }
 
+        const scheduledDate = formData.schedulePayment ? new Date(formData.scheduleDate).toLocaleDateString('en-GB') : null;
         const emailHtml = generateOTPEmailHTML(
             formData.recipientName || (accounts.find(acc => acc.id === formData.toAccountId)?.name || 'my own account'),
             formData.transferType === 'external' ? 'External Transfer' : 'Internal Transfer',
@@ -955,6 +970,7 @@ const SendMoney: React.FC = () => {
             recipientInfo,
             newOtp,
             10,
+            scheduledDate,
             getFormattedDateTime()
         );
 
@@ -1393,8 +1409,13 @@ const SendMoney: React.FC = () => {
                                     <span className="detail-value">{transactionReference}</span>
                                 </div>
                                 <div className="detail-row">
-                                    <span className="detail-label">Date & Time:</span>
-                                    <span className="detail-value">{transferTimestamp.toLocaleString('en-GB')}</span>
+                                    <span className="detail-label">{formData.schedulePayment ? 'Scheduled Date' : 'Date & Time'}:</span>
+                                    <span className="detail-value">
+                                        {formData.schedulePayment 
+                                            ? new Date(formData.scheduleDate).toLocaleDateString('en-GB')
+                                            : transferTimestamp.toLocaleString('en-GB')
+                                        }
+                                    </span>
                                 </div>
                                 <div className="detail-row">
                                     <span className="detail-label">From Account:</span>
@@ -1435,10 +1456,11 @@ const SendMoney: React.FC = () => {
                                         <span className="detail-value">{new Date(formData.scheduleDate).toLocaleDateString('en-GB')}</span>
                                     </div>
                                 )}
-                                {/* Estimated Delivery row removed – UK transfers are instant */}
                                 <div className="detail-row">
                                     <span className="detail-label">Status:</span>
-                                    <span className="detail-value status-completed">Completed</span>
+                                    <span className="detail-value status-completed">
+                                        {formData.schedulePayment ? 'Pending' : 'Completed'}
+                                    </span>
                                 </div>
                             </div>
 
