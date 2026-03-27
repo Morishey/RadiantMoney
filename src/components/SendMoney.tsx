@@ -395,8 +395,11 @@ async function sendOTPEmail(emailData: {
 const SendMoney: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { accounts, deductFromAccount, updateAccountBalance } = useAccounts();
+    const { accounts: rawAccounts, deductFromAccount, updateAccountBalance } = useAccounts();
     const { addTransaction } = useTransactions();
+
+    // Filter out checking accounts
+    const accounts = rawAccounts.filter(acc => acc.type !== 'checking');
 
     const [step, setStep] = useState<'form' | 'security' | 'otp' | 'success'>('form');
     const [formData, setFormData] = useState<TransferFormData>({
@@ -1239,10 +1242,7 @@ const SendMoney: React.FC = () => {
                                         <span className="detail-value">{new Date(formData.scheduleDate).toLocaleDateString('en-GB')}</span>
                                     </div>
                                 )}
-                                <div className="detail-row">
-                                    <span className="detail-label">Estimated Delivery:</span>
-                                    <span className="detail-value">{formatDate(minDeliveryDate)} – {formatDate(maxDeliveryDate)}</span>
-                                </div>
+                                {/* Estimated Delivery row removed – UK transfers are instant */}
                                 <div className="detail-row">
                                     <span className="detail-label">Status:</span>
                                     <span className="detail-value status-completed">Completed</span>

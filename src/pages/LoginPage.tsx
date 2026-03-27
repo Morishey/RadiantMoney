@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
   }, [isAuthenticated, navigate]);
 
   const DEMO_CREDENTIALS = {
-    email: 'chrisrobinson4299@gmail.com',
+    email: 'Samanichhomes12@gmail.com',
     password: 'Bchris4great01'
   };
 

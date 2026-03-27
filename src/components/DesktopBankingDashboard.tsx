@@ -98,8 +98,11 @@ const getIcon = (iconName: string, size: number = 18) => {
 const DesktopBankingDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
-    const { accounts } = useAccounts();
+    const { accounts: rawAccounts } = useAccounts();
     const { transactions } = useTransactions();
+
+    // Filter out checking accounts
+    const accounts = rawAccounts.filter(acc => acc.type !== 'checking');
 
     const [showBalance, setShowBalance] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState('all');
@@ -297,7 +300,7 @@ const DesktopBankingDashboard: React.FC = () => {
                     </div>
                     <div className="user-details">
                         <span className="user-name">Chris Robinson </span>
-                        <span className="user-email">chrisrobinson4299@gmail.com</span>
+                        <span className="user-email">Samanichhomes12@gmail.com</span>
                     </div>
                 </div>
 
@@ -501,9 +504,9 @@ const DesktopBankingDashboard: React.FC = () => {
                                 <div key={account.id} className="account-card">
                                     <div className="account-card-header">
                                         <div className="account-type">
-                                            {account.type === 'checking' && <Wallet size={20} />}
                                             {account.type === 'savings' && <Shield size={20} />}
                                             {account.type === 'investment' && <TrendingUp size={20} />}
+                                            {account.type === 'checking' && <Wallet size={20} />}
                                         </div>
                                         <div className="account-info">
                                             <span className="account-name">{account.name}</span>

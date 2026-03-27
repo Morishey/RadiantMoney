@@ -87,8 +87,11 @@ const getIcon = (iconName: string, size: number = 18) => {
 const BankingDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
-    const { accounts } = useAccounts();
+    const { accounts: rawAccounts } = useAccounts();
     const { transactions } = useTransactions();
+
+    // Filter out checking accounts
+    const accounts = rawAccounts.filter(acc => acc.type !== 'checking');
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('home');
@@ -307,7 +310,7 @@ const BankingDashboard: React.FC = () => {
                         <Menu size={24} />
                     </button>
                     <div className="logo-area">
-            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
+                        <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
                         <span className="logo-text">RadiantMoney</span>
                     </div>
                 </div>
@@ -337,7 +340,7 @@ const BankingDashboard: React.FC = () => {
                     <div className="menu-sidebar" onClick={e => e.stopPropagation()}>
                         <div className="menu-header">
                             <div className="menu-logo">
-            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
+                                <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
                                 <span className="menu-logo-text">RadiantMoney</span>
                             </div>
                             <button
@@ -347,7 +350,7 @@ const BankingDashboard: React.FC = () => {
                                 <X size={24} />
                             </button>
                         </div>
- 
+
                         <div className="user-profile-card">
                             <div className="user-avatar">
                                 <User size={24} />
@@ -478,9 +481,9 @@ const BankingDashboard: React.FC = () => {
                         <div key={account.id} className="account-card">
                             <div className="account-card-header">
                                 <div className="account-type-icon">
-                                    {account.type === 'checking' && <Wallet size={20} />}
                                     {account.type === 'savings' && <Shield size={20} />}
                                     {account.type === 'investment' && <TrendingUp size={20} />}
+                                    {account.type === 'checking' && <Wallet size={20} />}
                                 </div>
                                 <div className="account-info">
                                     <span className="account-name">{account.name}</span>
