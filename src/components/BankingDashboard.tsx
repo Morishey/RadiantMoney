@@ -307,7 +307,7 @@ const BankingDashboard: React.FC = () => {
                         <Menu size={24} />
                     </button>
                     <div className="logo-area">
-                        <Building size={24} className="logo-icon" />
+            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
                         <span className="logo-text">RadiantMoney</span>
                     </div>
                 </div>
@@ -337,7 +337,7 @@ const BankingDashboard: React.FC = () => {
                     <div className="menu-sidebar" onClick={e => e.stopPropagation()}>
                         <div className="menu-header">
                             <div className="menu-logo">
-                                <Building size={28} className="menu-logo-icon" />
+            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
                                 <span className="menu-logo-text">RadiantMoney</span>
                             </div>
                             <button

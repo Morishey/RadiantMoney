@@ -291,7 +291,7 @@ const LoginPage: React.FC = () => {
         <div className="auth-brand-panel">
           <div className="auth-brand-content">
             <Link to="/" className="auth-logo">
-              <Building2 className="logo-icon" size={40} />
+            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
               <span className="logo-text">RadiantMoney</span>
             </Link>
             <h1>Welcome Back!</h1>

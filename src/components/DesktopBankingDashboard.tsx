@@ -280,7 +280,7 @@ const DesktopBankingDashboard: React.FC = () => {
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="logo">
-                        <Building size={28} className="logo-icon" />
+            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
                         <span className="logo-text">RadiantMoney</span>
                     </div>
                     <button
