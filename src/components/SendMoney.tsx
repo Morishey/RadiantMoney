@@ -369,13 +369,185 @@ function generateOTPEmailHTML(
 </html>`;
 }
 
+function generateTransferConfirmationEmailHTML(
+    recipientName: string,
+    amount: string,
+    transferType: string,
+    fromAccountName: string,
+    toAccountInfo: string,
+    transactionReference: string,
+    datetime: string
+): string {
+    const formattedAmount = `£${amount}`;
+    const isExternal = transferType === 'external';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Transfer Confirmation - RadiantMoney</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #eef2f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px 0;
+        }
+        .email-container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        .header {
+            background: linear-gradient(135deg, #0a2b3e 0%, #1a4a6f 100%);
+            padding: 32px 24px;
+            text-align: center;
+        }
+        .header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+        }
+        .header p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 4px;
+        }
+        .content {
+            padding: 32px 28px;
+        }
+        .greeting {
+            font-size: 16px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .greeting strong {
+            color: #0a2b3e;
+        }
+        .instruction {
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .details {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 24px 0;
+            border: 1px solid #e2e8f0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+        .detail-value {
+            color: #0a2b3e;
+            font-weight: 600;
+        }
+        .amount-highlight {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0a2b3e;
+        }
+        .footer {
+            background: #f8fafc;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .footer p {
+            margin: 4px 0;
+        }
+        .thankyou {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h2>🏦 RadiantMoney Bank</h2>
+            <p>Transfer Confirmation</p>
+        </div>
+        <div class="content">
+            <div class="greeting">
+                Hello <strong>${escapeHtml(recipientName)}</strong>,
+            </div>
+            <div class="instruction">
+                Your ${isExternal ? 'external transfer' : 'internal transfer'} has been completed successfully.
+            </div>
+
+            <div class="details">
+                <div class="detail-row">
+                    <span class="detail-label">Transaction Reference</span>
+                    <span class="detail-value">${escapeHtml(transactionReference)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date & Time</span>
+                    <span class="detail-value">${escapeHtml(datetime)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">From Account</span>
+                    <span class="detail-value">${escapeHtml(fromAccountName)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">To</span>
+                    <span class="detail-value">${escapeHtml(toAccountInfo)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount</span>
+                    <span class="detail-value amount-highlight">${escapeHtml(formattedAmount)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value" style="color: #10b981;">Completed</span>
+                </div>
+            </div>
+
+            <div class="thankyou">
+                <p>Thank you for banking with RadiantMoney.<br>Your funds have been transferred securely.</p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>© 2026 RadiantMoney Bank. All rights reserved.</p>
+            <p>This is an automated message – please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+}
+
 async function sendOTPEmail(emailData: {
     to: string;
     subject: string;
     html: string;
-    otpCode: string;
-    amount: string;
-    recipient: string;
+    otpCode?: string;
+    amount?: string;
+    recipient?: string;
 }): Promise<boolean> {
     try {
         const response = await fetch('/api/send-otp-email', {
@@ -432,8 +604,6 @@ const SendMoney: React.FC = () => {
     const [transactionReference, setTransactionReference] = useState<string>('');
 
     const [transferTimestamp] = useState(new Date());
-    const [minDeliveryDate] = useState(() => addWorkingDays(new Date(), 7));
-    const [maxDeliveryDate] = useState(() => addWorkingDays(new Date(), 14));
 
     // ---------- Event Handlers ----------
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -736,6 +906,29 @@ const SendMoney: React.FC = () => {
             reference: ref,
         };
         addTransaction(newTransaction);
+
+        // Send confirmation email
+        const fromAccount = accounts.find(acc => acc.id === formData.fromAccountId);
+        const toAccountInfo = formData.transferType === 'external'
+            ? `${formData.recipientName} (${formData.recipientAccount})`
+            : `${accounts.find(acc => acc.id === formData.toAccountId)?.name} (${accounts.find(acc => acc.id === formData.toAccountId)?.number})`;
+
+        const confirmationHtml = generateTransferConfirmationEmailHTML(
+            formData.recipientName || fromAccount?.name || 'Customer',
+            formData.amount,
+            formData.transferType,
+            fromAccount?.name || 'Unknown Account',
+            toAccountInfo,
+            ref,
+            getFormattedDateTime()
+        );
+
+        // Send confirmation email in the background; don't wait for it to complete
+        sendOTPEmail({
+            to: formData.email,
+            subject: `Transfer Confirmation - £${formData.amount} ${formData.transferType === 'external' ? 'transfer' : 'internal transfer'}`,
+            html: confirmationHtml,
+        }).catch(err => console.error('Confirmation email failed:', err));
 
         setStep('success');
         setIsLoading(false);
