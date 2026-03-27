@@ -1,6 +1,6 @@
-// components/Header.tsx - CORRECTED VERSION
+// components/Header.tsx - Using favicon as logo
 import React, { useState, useEffect } from 'react';
-import { Building2, Menu, X } from 'lucide-react'; // Changed Bank to Building2
+import { Menu, X } from 'lucide-react'; // Removed Building2 import
 
 interface NavItem {
   label: string;
@@ -44,8 +44,8 @@ const Header: React.FC = () => {
       <div className="container">
         <div className="nav-container">
           <a href="/" className="logo">
-            {/* FIXED: Using Building2 instead of Bank */}
-            <Building2 className="logo-icon" />
+            {/* Using favicon as logo */}
+            <img src="/favicon.svg" alt="RadiantMoney" className="logo-icon" />
             <span>RadiantMoney</span>
           </a>
 
