@@ -554,12 +554,17 @@ const SendMoney: React.FC = () => {
                 }
             }
         }
-        if (!formData.description.trim()) {
-            newErrors.description = 'Description is required';
-        } else if (formData.description.length < 3) {
-            newErrors.description = 'Description must be at least 3 characters';
+
+        // Description is required only for external transfers
+        if (formData.transferType === 'external') {
+            if (!formData.description.trim()) {
+                newErrors.description = 'Description is required';
+            } else if (formData.description.length < 3) {
+                newErrors.description = 'Description must be at least 3 characters';
+            }
         }
-        if (formData.schedulePayment) {
+
+        if (formData.schedulePayment && formData.transferType === 'external') {
             if (!formData.scheduleDate) {
                 newErrors.scheduleDate = 'Please select a date for scheduled payment';
             } else {
@@ -962,21 +967,8 @@ const SendMoney: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="form-group">
-                            <label>Email for Verification</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="your-email@example.com"
-                                className={errors.email ? 'error' : ''}
-                                disabled={isLoading}
-                            />
-                            {errors.email && <span className="error-message"><AlertCircle size={14} /> {errors.email}</span>}
-                            <small className="field-hint">We'll send the verification code to this email</small>
-                        </div>
-
+                        {/* Amount field – placed after "From Account" and "To Account" for internal transfers,
+                            after recipient details for external transfers */}
                         <div className="form-group">
                             <label>Amount</label>
                             <div className="amount-input-wrapper">
@@ -994,48 +986,67 @@ const SendMoney: React.FC = () => {
                             {errors.amount && <span className="error-message"><AlertCircle size={14} /> {errors.amount}</span>}
                         </div>
 
+                        {formData.transferType === 'external' && (
+                            <>
+                                <div className="form-group">
+                                    <label>Description</label>
+                                    <textarea
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleChange}
+                                        placeholder="What's this for?"
+                                        rows={2}
+                                        className={`description-textarea ${errors.description ? 'error' : ''}`}
+                                        disabled={isLoading}
+                                    />
+                                    {errors.description && <span className="error-message"><AlertCircle size={14} /> {errors.description}</span>}
+                                </div>
+
+                                <div className="form-group schedule-group">
+                                    <label className="checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            name="schedulePayment"
+                                            checked={formData.schedulePayment}
+                                            onChange={handleChange}
+                                            disabled={isLoading}
+                                        />
+                                        <span>Schedule this payment</span>
+                                    </label>
+                                </div>
+
+                                {formData.schedulePayment && (
+                                    <div className="form-group">
+                                        <label>Select Date</label>
+                                        <input
+                                            type="date"
+                                            name="scheduleDate"
+                                            value={formData.scheduleDate}
+                                            onChange={handleChange}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className={errors.scheduleDate ? 'error' : ''}
+                                            disabled={isLoading}
+                                        />
+                                        {errors.scheduleDate && <span className="error-message"><AlertCircle size={14} /> {errors.scheduleDate}</span>}
+                                    </div>
+                                )}
+                            </>
+                        )}
+
                         <div className="form-group">
-                            <label>Description</label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
+                            <label>Email for Verification</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
                                 onChange={handleChange}
-                                placeholder="What's this for?"
-                                rows={2}
-                                className={`description-textarea ${errors.description ? 'error' : ''}`}
+                                placeholder="your-email@example.com"
+                                className={errors.email ? 'error' : ''}
                                 disabled={isLoading}
                             />
-                            {errors.description && <span className="error-message"><AlertCircle size={14} /> {errors.description}</span>}
+                            {errors.email && <span className="error-message"><AlertCircle size={14} /> {errors.email}</span>}
+                            <small className="field-hint">We'll send the verification code to this email</small>
                         </div>
-
-                        <div className="form-group schedule-group">
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    name="schedulePayment"
-                                    checked={formData.schedulePayment}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                />
-                                <span>Schedule this payment</span>
-                            </label>
-                        </div>
-
-                        {formData.schedulePayment && (
-                            <div className="form-group">
-                                <label>Select Date</label>
-                                <input
-                                    type="date"
-                                    name="scheduleDate"
-                                    value={formData.scheduleDate}
-                                    onChange={handleChange}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className={errors.scheduleDate ? 'error' : ''}
-                                    disabled={isLoading}
-                                />
-                                {errors.scheduleDate && <span className="error-message"><AlertCircle size={14} /> {errors.scheduleDate}</span>}
-                            </div>
-                        )}
 
                         <div className="security-note">
                             <Shield size={16} />
